@@ -46,20 +46,21 @@ class HyperliquidTracker:
         logger.info(f"Received signal {signum}, initiating graceful shutdown...")
         self.stop()
 
-    def _trade_callback(self, trade_data):
+    def _trade_callback(self, ws_msg):
         """
         Callback for trade events.
 
         Args:
-            trade_data: List of trades from WebSocket
+            ws_msg: WebSocket message dict with 'channel' and 'data' keys
         """
         try:
-            # WebSocket returns a list of trades
-            if isinstance(trade_data, list):
-                for trade in trade_data:
-                    self.tracker.process_trade_event(trade)
-            else:
-                self.tracker.process_trade_event(trade_data)
+            # Extract the trades data from the WebSocket message
+            # Expected format: {"channel": "trades", "data": [{trade1}, {trade2}, ...]}
+            trades = ws_msg.get("data", [])
+
+            # Process each trade in the data array
+            for trade in trades:
+                self.tracker.process_trade_event(trade)
 
             # Check if we should flush the batch
             if self.tracker.should_flush():
