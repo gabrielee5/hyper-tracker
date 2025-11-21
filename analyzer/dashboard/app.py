@@ -247,6 +247,134 @@ DASHBOARD_HTML = """
             color: #999;
             margin-top: 5px;
         }
+
+        /* Trader Detail Styles */
+        .trader-detail {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 1000;
+            overflow-y: auto;
+            padding: 20px;
+        }
+
+        .trader-detail.active {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .trader-detail-content {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            max-width: 800px;
+            width: 100%;
+            max-height: 90vh;
+            overflow-y: auto;
+            position: relative;
+        }
+
+        .close-btn {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            font-size: 2em;
+            cursor: pointer;
+            color: #999;
+            background: none;
+            border: none;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            transition: all 0.2s;
+        }
+
+        .close-btn:hover {
+            background: #f0f0f0;
+            color: #333;
+        }
+
+        .trader-detail h2 {
+            color: #667eea;
+            margin-bottom: 20px;
+            font-size: 1.8em;
+        }
+
+        .detail-section {
+            margin-bottom: 25px;
+        }
+
+        .detail-section h3 {
+            color: #667eea;
+            margin-bottom: 15px;
+            font-size: 1.3em;
+            border-bottom: 2px solid #e0e0e0;
+            padding-bottom: 8px;
+        }
+
+        .metric-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .metric-box {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+        }
+
+        .metric-label {
+            font-size: 0.85em;
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 5px;
+        }
+
+        .metric-value {
+            font-size: 1.4em;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .metric-value.positive {
+            color: #27ae60;
+        }
+
+        .metric-value.negative {
+            color: #e74c3c;
+        }
+
+        .score-badge {
+            display: inline-block;
+            padding: 10px 20px;
+            border-radius: 25px;
+            font-size: 1.5em;
+            font-weight: bold;
+            color: white;
+            margin-bottom: 15px;
+        }
+
+        .clickable {
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .clickable:hover {
+            opacity: 0.7;
+            text-decoration: underline;
+        }
     </style>
 </head>
 <body>
@@ -280,6 +408,16 @@ DASHBOARD_HTML = """
             <h2>⚠️ Worst Performers</h2>
             <div id="worst-traders-container">
                 <div class="loading">Loading traders...</div>
+            </div>
+        </div>
+
+        <!-- Trader Detail Modal -->
+        <div class="trader-detail" id="trader-detail">
+            <div class="trader-detail-content">
+                <button class="close-btn" onclick="closeTraderDetail()">&times;</button>
+                <div id="trader-detail-body">
+                    <div class="loading">Loading trader data...</div>
+                </div>
             </div>
         </div>
 
@@ -322,6 +460,152 @@ DASHBOARD_HTML = """
             return 'good';
         }
 
+        function getScoreColor(score) {
+            if (score < 5) return '#e74c3c';
+            if (score < 15) return '#e67e22';
+            if (score < 40) return '#f39c12';
+            if (score < 60) return '#95a5a6';
+            if (score < 85) return '#3498db';
+            if (score < 95) return '#27ae60';
+            return '#16a085';
+        }
+
+        function getPerformanceCategory(score) {
+            if (score < 5) return 'Exceptionally Bad';
+            if (score < 15) return 'Very Poor';
+            if (score < 40) return 'Below Average';
+            if (score < 60) return 'Average';
+            if (score < 85) return 'Above Average';
+            if (score < 95) return 'Very Good';
+            return 'Exceptional';
+        }
+
+        async function openTraderDetail(address) {
+            const modal = document.getElementById('trader-detail');
+            const body = document.getElementById('trader-detail-body');
+
+            modal.classList.add('active');
+            body.innerHTML = '<div class="loading">Loading trader data...</div>';
+
+            const trader = await fetchData('trader/' + address);
+
+            if (!trader || trader.error) {
+                body.innerHTML = '<div class="no-data">Trader not found or error loading data</div>';
+                return;
+            }
+
+            const scoreColor = getScoreColor(trader.score);
+            const category = getPerformanceCategory(trader.score);
+            const pnlClass = trader.total_pnl >= 0 ? 'positive' : 'negative';
+
+            body.innerHTML = `
+                <h2>Trader Analysis</h2>
+                <div style="font-family: monospace; color: #666; margin-bottom: 20px;">${address}</div>
+
+                <div class="detail-section">
+                    <div class="score-badge" style="background: ${scoreColor};">
+                        Score: ${trader.score}/100
+                    </div>
+                    <div style="font-size: 1.1em; color: #666; margin-bottom: 20px;">
+                        <strong>Category:</strong> ${category}
+                    </div>
+                </div>
+
+                <div class="detail-section">
+                    <h3>📊 Performance Metrics</h3>
+                    <div class="metric-grid">
+                        <div class="metric-box">
+                            <div class="metric-label">Total PnL</div>
+                            <div class="metric-value ${pnlClass}">${formatMoney(trader.total_pnl)}</div>
+                        </div>
+                        <div class="metric-box">
+                            <div class="metric-label">Avg PnL/Trade</div>
+                            <div class="metric-value ${trader.mean_pnl_per_trade >= 0 ? 'positive' : 'negative'}">
+                                ${formatMoney(trader.mean_pnl_per_trade)}
+                            </div>
+                        </div>
+                        <div class="metric-box">
+                            <div class="metric-label">Total Trades</div>
+                            <div class="metric-value">${trader.num_trades}</div>
+                        </div>
+                        <div class="metric-box">
+                            <div class="metric-label">Win Rate</div>
+                            <div class="metric-value">${(trader.win_rate * 100).toFixed(1)}%</div>
+                        </div>
+                        <div class="metric-box">
+                            <div class="metric-label">Avg Win</div>
+                            <div class="metric-value positive">${formatMoney(trader.avg_win)}</div>
+                        </div>
+                        <div class="metric-box">
+                            <div class="metric-label">Avg Loss</div>
+                            <div class="metric-value negative">${formatMoney(trader.avg_loss)}</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="detail-section">
+                    <h3>📈 Statistical Analysis</h3>
+                    <div class="metric-grid">
+                        <div class="metric-box">
+                            <div class="metric-label">Sharpe Ratio</div>
+                            <div class="metric-value">${trader.sharpe_ratio.toFixed(4)}</div>
+                        </div>
+                        <div class="metric-box">
+                            <div class="metric-label">Expected Value</div>
+                            <div class="metric-value ${trader.expected_value >= 0 ? 'positive' : 'negative'}">
+                                ${formatMoney(trader.expected_value)}
+                            </div>
+                        </div>
+                        <div class="metric-box">
+                            <div class="metric-label">Std Deviation</div>
+                            <div class="metric-value">${formatMoney(trader.std_dev)}</div>
+                        </div>
+                        <div class="metric-box">
+                            <div class="metric-label">P-Value</div>
+                            <div class="metric-value">${trader.p_value.toFixed(6)}</div>
+                        </div>
+                        <div class="metric-box">
+                            <div class="metric-label">T-Statistic</div>
+                            <div class="metric-value">${trader.t_statistic.toFixed(4)}</div>
+                        </div>
+                        <div class="metric-box">
+                            <div class="metric-label">Monte Carlo %ile</div>
+                            <div class="metric-value">${trader.monte_carlo_percentile.toFixed(2)}%</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="detail-section">
+                    <h3>📅 Analysis Info</h3>
+                    <div class="metric-grid">
+                        <div class="metric-box">
+                            <div class="metric-label">Last Analyzed</div>
+                            <div class="metric-value" style="font-size: 1em;">
+                                ${new Date(trader.last_analyzed).toLocaleString()}
+                            </div>
+                        </div>
+                        <div class="metric-box">
+                            <div class="metric-label">Statistically Significant</div>
+                            <div class="metric-value" style="font-size: 1em;">
+                                ${trader.is_statistically_bad ? '🚨 Yes (Bad)' : '✓ No'}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function closeTraderDetail() {
+            document.getElementById('trader-detail').classList.remove('active');
+        }
+
+        // Close modal when clicking outside
+        document.getElementById('trader-detail').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeTraderDetail();
+            }
+        });
+
         async function updateStats() {
             const stats = await fetchData('stats');
             if (!stats) return;
@@ -360,7 +644,9 @@ DASHBOARD_HTML = """
 
             container.innerHTML = alerts.map(alert => `
                 <div class="alert-item">
-                    <div class="address">${shortenAddress(alert.address)}</div>
+                    <div class="address clickable" onclick="openTraderDetail('${alert.address}')">
+                        ${shortenAddress(alert.address)}
+                    </div>
                     <div class="details">
                         Score: ${alert.score}/100 |
                         PnL: ${formatMoney(alert.total_pnl)} |
@@ -426,7 +712,9 @@ DASHBOARD_HTML = """
             container.innerHTML = traders.map(trader => `
                 <div class="trader-item">
                     <span class="score ${getScoreClass(trader.score)}">${trader.score}</span>
-                    <span class="address">${shortenAddress(trader.address)}</span>
+                    <span class="address clickable" onclick="openTraderDetail('${trader.address}')">
+                        ${shortenAddress(trader.address)}
+                    </span>
                     <div class="details">
                         Total PnL: ${formatMoney(trader.total_pnl)} |
                         Avg/Trade: ${formatMoney(trader.mean_pnl_per_trade)} |
