@@ -29,7 +29,7 @@ class HyperliquidTracker:
         """
         self.config = config
         self.storage = AddressStorage(config.database_path)
-        self.tracker = AddressTracker(batch_size=config.batch_size)
+        self.tracker = AddressTracker(batch_size=config.batch_size, track_role=config.track_role)
         self.connection = HyperliquidConnection(config.api_url)
 
         self.coins_tracked: List[str] = []
@@ -116,6 +116,7 @@ class HyperliquidTracker:
             logger.info("Starting Hyperliquid Tracker")
             logger.info(f"Network: {self.config.network}")
             logger.info(f"Database: {self.config.database_path}")
+            logger.info(f"Tracking role: {self.config.track_role}")
 
             # Connect to Hyperliquid
             self.connection.connect()

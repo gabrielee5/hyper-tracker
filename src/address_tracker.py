@@ -12,14 +12,16 @@ logger = logging.getLogger(__name__)
 class AddressTracker:
     """Tracks trader addresses from trade events with batch processing."""
 
-    def __init__(self, batch_size: int = 1000):
+    def __init__(self, batch_size: int = 1000, track_role: str = "both"):
         """
         Initialize the tracker.
 
         Args:
             batch_size: Number of addresses to accumulate before flushing
+            track_role: Which addresses to track - 'maker', 'taker', or 'both'
         """
         self.batch_size = batch_size
+        self.track_role = track_role
         self.pending_addresses: deque = deque()
         self.seen_in_batch: Set[str] = set()
         self.lock = Lock()
@@ -36,13 +38,13 @@ class AddressTracker:
         Expected trade_data format:
         {
             "coin": "BTC",
-            "side": "buy",
+            "side": "A",  # "A" = ask (seller is taker), "B" = bid (buyer is taker)
             "px": "42000.50",
             "sz": "1.5",
             "hash": "0x...",
             "time": 1234567890,
             "tid": 12345,
-            "users": ["0xbuyer...", "0xseller..."]
+            "users": ["0xbuyer...", "0xseller..."]  # [buyer, seller]
         }
 
         Args:
@@ -52,6 +54,7 @@ class AddressTracker:
             try:
                 # Extract data
                 coin = trade_data.get("coin")
+                side = trade_data.get("side")  # "A" or "B"
                 users = trade_data.get("users", [])
                 price = float(trade_data.get("px", 0))
                 size = float(trade_data.get("sz", 0))
@@ -64,13 +67,35 @@ class AddressTracker:
                 self.total_trades_processed += 1
                 self.trades_by_coin[coin] = self.trades_by_coin.get(coin, 0) + 1
 
-                # Extract both buyer and seller addresses
-                for address in users:
+                # Determine which addresses to track based on role
+                # users = [buyer, seller]
+                # side "A" (Ask) = seller is taker, buyer is maker
+                # side "B" (Bid) = buyer is taker, seller is maker
+
+                addresses_to_track = []
+
+                if len(users) >= 2:
+                    buyer = users[0]
+                    seller = users[1]
+
+                    if self.track_role == "both":
+                        addresses_to_track = [buyer, seller]
+                    elif self.track_role == "taker":
+                        # Side "A" means seller is taker, Side "B" means buyer is taker
+                        taker = seller if side == "A" else buyer
+                        addresses_to_track = [taker]
+                    elif self.track_role == "maker":
+                        # Side "A" means buyer is maker, Side "B" means seller is maker
+                        maker = buyer if side == "A" else seller
+                        addresses_to_track = [maker]
+
+                # Process selected addresses
+                for address in addresses_to_track:
                     if address and address not in self.seen_in_batch:
                         self.pending_addresses.append({
                             "address": address,
                             "timestamp": timestamp,
-                            "volume": trade_value_usd / 2,  # Split volume between buyer and seller
+                            "volume": trade_value_usd / len(addresses_to_track),
                         })
                         self.seen_in_batch.add(address)
                         self.total_addresses_found += 1

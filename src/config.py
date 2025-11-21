@@ -21,6 +21,7 @@ class Config(BaseModel):
     # Tracking Configuration
     track_all_coins: bool = Field(default=False)
     selected_coins: List[str] = Field(default_factory=list)
+    track_role: str = Field(default="both")  # 'maker', 'taker', or 'both'
 
     # Database Configuration
     database_path: Path = Field(default=Path("data/addresses.db"))
@@ -60,6 +61,11 @@ class Config(BaseModel):
         track_all_coins = os.getenv("TRACK_ALL_COINS", "false").lower() == "true"
         selected_coins_str = os.getenv("SELECTED_COINS", "BTC,ETH,SOL,ARB")
         selected_coins = [coin.strip() for coin in selected_coins_str.split(",") if coin.strip()]
+        track_role = os.getenv("TRACK_ROLE", "both").lower()
+
+        # Validate track_role
+        if track_role not in ["maker", "taker", "both"]:
+            raise ValueError(f"Invalid TRACK_ROLE: {track_role}. Must be 'maker', 'taker', or 'both'")
 
         # Parse paths
         database_path = Path(os.getenv("DATABASE_PATH", "data/addresses.db"))
@@ -83,6 +89,7 @@ class Config(BaseModel):
             ws_url=ws_url,
             track_all_coins=track_all_coins,
             selected_coins=selected_coins,
+            track_role=track_role,
             database_path=database_path,
             batch_size=batch_size,
             dedup_interval=dedup_interval,
