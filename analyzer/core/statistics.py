@@ -236,7 +236,7 @@ class StatisticalAnalyzer:
         Calculate final score (0-100) combining statistical tests.
 
         The Monte Carlo percentile is the primary score, adjusted by
-        statistical significance from the t-test.
+        statistical significance from the t-test using symmetric adjustments.
 
         Args:
             t_statistic: T-test statistic
@@ -252,23 +252,31 @@ class StatisticalAnalyzer:
         # Start with Monte Carlo percentile as base score
         base_score = monte_carlo_percentile
 
-        # Adjust based on statistical significance
-        if p_value < 0.01:  # Highly significant (99% confidence)
-            if t_statistic < 0:  # Significantly BAD
-                # Push score toward 0
-                base_score = base_score * 0.7
-            else:  # Significantly GOOD
-                # Push score toward 100
-                base_score = 50 + (base_score - 50) * 1.3
+        # Calculate distance from median (50)
+        distance_from_50 = base_score - 50
 
-        elif p_value < 0.05:  # Moderately significant (95% confidence)
-            if t_statistic < 0:  # Probably bad
-                base_score = base_score * 0.85
-            else:  # Probably good
-                base_score = 50 + (base_score - 50) * 1.15
+        # Apply symmetric adjustments based on statistical significance
+        # Only amplify if the result is already notably different from random (|distance| > 10)
+        if abs(distance_from_50) > 10:
+            if p_value < 0.01:  # Highly significant (99% confidence)
+                # Amplify distance from 50 by 30%
+                adjusted_distance = distance_from_50 * 1.3
+            elif p_value < 0.05:  # Moderately significant (95% confidence)
+                # Amplify distance from 50 by 15%
+                adjusted_distance = distance_from_50 * 1.15
+            else:
+                # No amplification for non-significant results
+                adjusted_distance = distance_from_50
+        else:
+            # Don't amplify scores close to 50 (random performance)
+            # Even if statistically significant, they're practically random
+            adjusted_distance = distance_from_50
+
+        # Calculate final score
+        final_score = 50 + adjusted_distance
 
         # Clip to valid range
-        score = max(0, min(100, base_score))
+        score = max(0, min(100, final_score))
 
         return int(round(score))
 
