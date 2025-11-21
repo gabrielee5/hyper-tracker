@@ -43,6 +43,12 @@ src/data/*.db-journal
 # Logs
 src/logs/*.log
 
+# Analyzer
+analyzer/data/*.db
+analyzer/logs/*.log
+analyzer/config/data/*.db
+analyzer/config/logs/*.log
+
 # OS
 .DS_Store
 Thumbs.db
