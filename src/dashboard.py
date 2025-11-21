@@ -323,7 +323,7 @@ DASHBOARD_TEMPLATE = """
                 .then(data => {
                     // Update statistics
                     document.getElementById('totalAddresses').textContent = formatNumber(data.db_stats.total_addresses);
-                    document.getElementById('totalTrades').textContent = formatNumber(data.db_stats.total_trades);
+                    document.getElementById('totalTrades').textContent = formatNumber(data.tracker_stats.total_trades_processed);
                     document.getElementById('totalVolume').textContent = '$' + formatNumber(data.db_stats.total_volume_usd);
                     document.getElementById('active24h').textContent = formatNumber(data.db_stats.active_last_24h);
                     document.getElementById('active1h').textContent = formatNumber(data.db_stats.active_last_1h);
