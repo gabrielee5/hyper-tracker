@@ -37,6 +37,9 @@ class TraderMetrics:
     score: int  # 0-100
     is_statistically_bad: bool
 
+    # Account information
+    account_balance: Optional[float] = None
+
 
 class StatisticalAnalyzer:
     """

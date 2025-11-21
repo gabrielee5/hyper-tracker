@@ -129,13 +129,18 @@ class HyperliquidAPIClient:
                     await asyncio.sleep(wait_time)
 
                 async with self.rate_limiter:
-                    fills = await self._make_request(payload)
+                    data = await self._make_request(payload)
+
+                    # userFills returns a list
+                    if not isinstance(data, list):
+                        logger.warning(f"Expected list for userFills, got {type(data)}")
+                        return []
 
                     logger.info(
-                        f"Fetched {len(fills)} fills for address {self._shorten_address(address)}"
+                        f"Fetched {len(data)} fills for address {self._shorten_address(address)}"
                     )
 
-                    return fills
+                    return data
 
             except aiohttp.ClientError as e:
                 # Check if it's a 429 (rate limit) error
@@ -172,7 +177,7 @@ class HyperliquidAPIClient:
 
         raise HyperliquidAPIError("Max retries exceeded")
 
-    async def _make_request(self, payload: Dict) -> List[Dict]:
+    async def _make_request(self, payload: Dict):
         """
         Make POST request to Hyperliquid Info API.
 
@@ -180,7 +185,7 @@ class HyperliquidAPIClient:
             payload: Request payload
 
         Returns:
-            API response data
+            API response data (list or dict depending on endpoint)
 
         Raises:
             aiohttp.ClientError: If request fails
@@ -196,14 +201,12 @@ class HyperliquidAPIClient:
 
             data = await response.json()
 
-            # API returns list directly for userFills
-            if isinstance(data, list):
-                return data
-            elif isinstance(data, dict) and 'error' in data:
+            # Check for error response
+            if isinstance(data, dict) and 'error' in data:
                 raise HyperliquidAPIError(f"API error: {data['error']}")
-            else:
-                logger.warning(f"Unexpected response format: {type(data)}")
-                return []
+
+            # Return data as-is (can be list or dict)
+            return data
 
     def _is_valid_address(self, address: str) -> bool:
         """

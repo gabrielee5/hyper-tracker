@@ -512,6 +512,18 @@ DASHBOARD_HTML = """
                 </div>
 
                 <div class="detail-section">
+                    <h3>💰 Account Information</h3>
+                    <div class="metric-grid">
+                        <div class="metric-box">
+                            <div class="metric-label">Account Balance</div>
+                            <div class="metric-value ${trader.account_balance && trader.account_balance >= 0 ? 'positive' : ''}">
+                                ${trader.account_balance != null ? formatMoney(trader.account_balance) : 'N/A'}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="detail-section">
                     <h3>📊 Performance Metrics</h3>
                     <div class="metric-grid">
                         <div class="metric-box">

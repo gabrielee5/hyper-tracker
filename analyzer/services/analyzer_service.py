@@ -146,6 +146,25 @@ class AnalyzerService:
                 )
                 return False
 
+            # Fetch account balance
+            try:
+                user_state = await self.api_client.fetch_user_state(address)
+                logger.debug(f"User state keys: {list(user_state.keys()) if isinstance(user_state, dict) else 'Not a dict'}")
+
+                # Extract account value from user state
+                if isinstance(user_state, dict) and 'marginSummary' in user_state:
+                    account_value = user_state['marginSummary'].get('accountValue')
+                    if account_value is not None:
+                        metrics.account_balance = float(account_value)
+                        logger.info(f"Fetched balance for {self._shorten_address(address)}: ${metrics.account_balance:,.2f}")
+                    else:
+                        logger.debug(f"accountValue is None in marginSummary for {self._shorten_address(address)}")
+                else:
+                    logger.debug(f"marginSummary not found in user state for {self._shorten_address(address)}")
+            except Exception as e:
+                logger.warning(f"Failed to fetch account balance for {self._shorten_address(address)}: {e}")
+                # Continue without balance - it's optional
+
             # Save to database
             await self.database.save_trader_analysis(address, metrics)
 
