@@ -39,9 +39,11 @@ ENV/
 # Database
 src/data/*.db
 src/data/*.db-journal
+data/
 
 # Logs
 src/logs/*.log
+logs/
 
 # Analyzer
 analyzer/data/*.db
