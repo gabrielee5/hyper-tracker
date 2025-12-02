@@ -275,14 +275,20 @@ def parse_positions(user_state: Dict) -> List[Dict]:
     asset_positions = user_state.get('assetPositions', [])
 
     if not asset_positions:
+        logger.debug(f"No assetPositions for {address}")
         return []
 
+    logger.debug(f"Found {len(asset_positions)} asset positions for {address}")
     positions = []
 
     for asset_pos in asset_positions:
         try:
+            # The position data is nested inside a 'position' object
+            # API response: assetPositions[].position contains the actual data
+            position_data = asset_pos.get('position', asset_pos)
+
             # Parse size (szi) - negative = short, positive = long
-            szi = float(asset_pos.get('szi', 0))
+            szi = float(position_data.get('szi', 0))
 
             # Skip if no position
             if szi == 0:
@@ -292,13 +298,13 @@ def parse_positions(user_state: Dict) -> List[Dict]:
             size = abs(szi)
 
             # Parse other fields
-            coin = asset_pos.get('coin', 'UNKNOWN')
-            position_value = abs(float(asset_pos.get('positionValue', 0)))
-            entry_px = float(asset_pos.get('entryPx', 0))
-            unrealized_pnl = float(asset_pos.get('unrealizedPnl', 0))
+            coin = position_data.get('coin', 'UNKNOWN')
+            position_value = abs(float(position_data.get('positionValue', 0)))
+            entry_px = float(position_data.get('entryPx', 0))
+            unrealized_pnl = float(position_data.get('unrealizedPnl', 0))
 
             # Parse leverage
-            leverage_obj = asset_pos.get('leverage', {})
+            leverage_obj = position_data.get('leverage', {})
             if isinstance(leverage_obj, dict):
                 leverage_value = float(leverage_obj.get('value', 1))
             else:

@@ -345,9 +345,17 @@ TEST 5: Dashboard Display
 
 **Cause:** Not enough bad traders have open positions
 
-**Solution:**
-- Lower `min_traders_for_signal` in config
-- Increase `bad_trader_score_threshold` to include more traders
+**This is normal behavior!** Bad traders aren't always actively trading. Out of 277 bad traders, only 20-50 may have open positions at any given time.
+
+**Check current status:**
+```bash
+python3 contrarian/check_positions.py
+```
+
+**Solutions if needed:**
+- Lower `min_traders_for_signal` in config (try 5 instead of 10)
+- Increase `bad_trader_score_threshold` to include more traders (try 10 instead of 5)
+- Wait for bad traders to open positions (system monitors continuously)
 - Check if Phase 2 database has recent analysis
 
 ### API rate limit errors
