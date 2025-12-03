@@ -35,7 +35,8 @@ class ContrarianDashboard:
         self,
         show_size_weighted: bool = True,
         top_signals_limit: int = 15,
-        enable_colors: bool = True
+        enable_colors: bool = True,
+        priority_coins: List[str] = None
     ):
         """
         Initialize dashboard.
@@ -44,12 +45,42 @@ class ContrarianDashboard:
             show_size_weighted: Show size-weighted metrics alongside count-based
             top_signals_limit: Maximum number of signals to display
             enable_colors: Enable colored output
+            priority_coins: List of coin symbols to display first in the table
         """
         self.show_size_weighted = show_size_weighted
         self.top_signals_limit = top_signals_limit
         self.enable_colors = enable_colors
+        self.priority_coins = priority_coins or []
 
         self.console = Console()
+
+    def _sort_signals_with_priority(self, signals: List[Dict]) -> List[Dict]:
+        """
+        Sort signals with priority coins first, then by confidence.
+
+        Args:
+            signals: List of signal dictionaries
+
+        Returns:
+            Sorted list with priority coins at the top
+        """
+        if not self.priority_coins:
+            return signals
+
+        priority_signals = []
+        other_signals = []
+
+        for signal in signals:
+            if signal['coin'] in self.priority_coins:
+                priority_signals.append(signal)
+            else:
+                other_signals.append(signal)
+
+        # Sort priority coins in the order specified in config
+        priority_signals.sort(key=lambda s: self.priority_coins.index(s['coin']))
+
+        # Combine: priority coins first, then all others sorted by confidence
+        return priority_signals + other_signals
 
     def render(
         self,
@@ -82,7 +113,9 @@ class ContrarianDashboard:
 
         # Create signal table
         if signals:
-            signal_table = self._create_signal_table(signals[:self.top_signals_limit])
+            # Sort signals with priority coins first
+            sorted_signals = self._sort_signals_with_priority(signals)
+            signal_table = self._create_signal_table(sorted_signals[:self.top_signals_limit])
         else:
             signal_table = Panel(
                 "[yellow]No signals generated yet.\nWaiting for position data...[/yellow]",

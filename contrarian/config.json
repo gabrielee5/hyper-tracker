@@ -3,7 +3,7 @@
   "min_traders_for_signal": 10,
   "signal_thresholds": {
     "strong": 0.70,
-    "moderate": 0.60
+    "moderate": 0.50
   },
   "update_interval_seconds": 300,
   "api": {
@@ -22,6 +22,7 @@
     "refresh_rate": 5,
     "show_size_weighted": true,
     "top_signals_limit": 15,
-    "enable_colors": true
+    "enable_colors": true,
+    "priority_coins": ["BTC", "ETH", "SOL"]
   }
 }

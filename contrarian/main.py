@@ -90,7 +90,8 @@ class ContrarianEngine:
         self.dashboard = ContrarianDashboard(
             show_size_weighted=self.config.dashboard.show_size_weighted,
             top_signals_limit=self.config.dashboard.top_signals_limit,
-            enable_colors=self.config.dashboard.enable_colors
+            enable_colors=self.config.dashboard.enable_colors,
+            priority_coins=self.config.dashboard.priority_coins
         )
 
         # State

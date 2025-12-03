@@ -44,6 +44,11 @@ class DashboardConfig:
     show_size_weighted: bool = True
     top_signals_limit: int = 15
     enable_colors: bool = True
+    priority_coins: list = None
+
+    def __post_init__(self):
+        if self.priority_coins is None:
+            self.priority_coins = []
 
 
 class ConrarianConfig:
@@ -109,7 +114,8 @@ class ConrarianConfig:
                 "refresh_rate": 5,
                 "show_size_weighted": True,
                 "top_signals_limit": 15,
-                "enable_colors": True
+                "enable_colors": True,
+                "priority_coins": []
             }
         }
 
@@ -167,7 +173,8 @@ class ConrarianConfig:
             refresh_rate=dash_config.get("refresh_rate", 5),
             show_size_weighted=dash_config.get("show_size_weighted", True),
             top_signals_limit=dash_config.get("top_signals_limit", 15),
-            enable_colors=dash_config.get("enable_colors", True)
+            enable_colors=dash_config.get("enable_colors", True),
+            priority_coins=dash_config.get("priority_coins", [])
         )
 
     def save(self):
