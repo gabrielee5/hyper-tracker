@@ -25,7 +25,7 @@ logger = logging.getLogger(__name__)
 def main():
     """Main entry point."""
     print("=" * 80)
-    print("PAPER TRADING SIMULATOR - Phase 4")
+    print("PAPER TRADING SIMULATOR")
     print("=" * 80)
     print()
 

@@ -1,6 +1,6 @@
-# Phase 4: Paper Trading Simulator
+# Paper Trading Simulator
 
-A live paper trading simulator that executes contrarian trading strategies based on signals from Phase 3.
+A live paper trading simulator that executes contrarian trading strategies based on signals from the analyzer.
 
 ## Overview
 
@@ -18,12 +18,12 @@ This simulator manages a virtual $100k portfolio, automatically rebalancing posi
 ## Architecture
 
 ```
-phase4_simulator/
+simulator/
 ├── main.py                    # Main entry point
 ├── simulator.py               # Core simulator orchestration
 ├── config.py                  # Configuration loader
 ├── database.py                # Database operations
-├── signal_reader.py           # Phase 3 signal reader
+├── signal_reader.py           # Signal reader
 ├── position_sizer.py          # Allocation calculator
 ├── price_fetcher.py           # Hyperliquid API client
 ├── order_executor.py          # Trade execution simulator
@@ -56,14 +56,19 @@ phase4_simulator/
      }
    }
    ```
-   All paths are relative to the `phase4_simulator` directory.
+   All paths are relative to the `simulator` directory.
 
 ## Usage
 
 ### Starting the Simulator
 
 ```bash
-cd phase4_simulator
+python simulator/main.py
+```
+
+Or from within the simulator directory:
+```bash
+cd simulator
 python main.py
 ```
 

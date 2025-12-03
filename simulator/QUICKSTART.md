@@ -1,15 +1,15 @@
-# Quick Start Guide - Phase 4 Simulator
+# Quick Start Guide - Paper Trading Simulator
 
 ## Prerequisites
 - Python 3.8+
-- Phase 3 contrarian signals database (`../data/contrarian_signals.db`)
+- Contrarian signals database (`../data/contrarian_signals.db`)
 - Internet connection (for Hyperliquid API)
 
 ## Installation
 
 1. **Navigate to the simulator directory:**
    ```bash
-   cd phase4_simulator
+   cd simulator
    ```
 
 2. **Install dependencies** (if not already installed):
