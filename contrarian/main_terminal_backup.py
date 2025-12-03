@@ -34,7 +34,6 @@ from contrarian.core.signal_generator import (
     SignalThresholds
 )
 from contrarian.core.dashboard import ContrarianDashboard
-from contrarian.core.web_dashboard import WebDashboard
 
 
 # Setup logging
@@ -62,16 +61,14 @@ class ContrarianEngine:
     to generating and displaying signals.
     """
 
-    def __init__(self, config: Optional[ConrarianConfig] = None, enable_web: bool = True):
+    def __init__(self, config: Optional[ConrarianConfig] = None):
         """
         Initialize contrarian engine.
 
         Args:
             config: Configuration object (uses default if None)
-            enable_web: Whether to enable web dashboard
         """
         self.config = config or ConrarianConfig()
-        self.enable_web = enable_web
 
         # Initialize components
         self.phase2_reader = Phase2Reader(self.config.database.phase2_path)
@@ -96,13 +93,6 @@ class ContrarianEngine:
             enable_colors=self.config.dashboard.enable_colors,
             priority_coins=self.config.dashboard.priority_coins
         )
-
-        # Web dashboard
-        self.web_dashboard = None
-        if self.enable_web:
-            self.web_dashboard = WebDashboard(
-                priority_coins=self.config.dashboard.priority_coins
-            )
 
         # State
         self.running = False
@@ -244,26 +234,10 @@ class ContrarianEngine:
 
                     # Also print concise summary
                     self.dashboard.print_summary(self.last_signals)
-
-                    # Update web dashboard
-                    if self.web_dashboard:
-                        self.web_dashboard.update_data(
-                            self.last_signals,
-                            self.bad_traders_count,
-                            self.traders_with_positions
-                        )
                 else:
                     self.dashboard.print_status(
                         "No signals generated. Waiting for next cycle..."
                     )
-
-                    # Update web dashboard with empty signals
-                    if self.web_dashboard:
-                        self.web_dashboard.update_data(
-                            [],
-                            self.bad_traders_count,
-                            self.traders_with_positions
-                        )
 
                 # Wait for next cycle
                 logger.info(f"Waiting {self.config.update_interval_seconds}s for next update...")
@@ -296,8 +270,8 @@ async def main():
     logger.info(f"Update interval: {config.update_interval_seconds}s")
     logger.info("=" * 80)
 
-    # Create engine with web dashboard enabled
-    engine = ContrarianEngine(config, enable_web=True)
+    # Create engine
+    engine = ContrarianEngine(config)
 
     # Setup signal handlers for graceful shutdown
     def signal_handler(sig, frame):
@@ -310,15 +284,6 @@ async def main():
     try:
         # Initialize
         await engine.initialize()
-
-        # Start web dashboard in background thread
-        if engine.web_dashboard:
-            engine.web_dashboard.run_in_thread()
-            logger.info("")
-            logger.info("=" * 80)
-            logger.info("Web Dashboard: http://127.0.0.1:5000")
-            logger.info("=" * 80)
-            logger.info("")
 
         # Run continuous monitoring
         await engine.run_continuous()
