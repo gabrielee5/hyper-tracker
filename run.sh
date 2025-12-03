@@ -39,4 +39,4 @@ echo "Dashboard will be available at: http://localhost:5000"
 echo "Press Ctrl+C to stop"
 echo ""
 
-cd src && python main.py
+cd fetcher && python main.py

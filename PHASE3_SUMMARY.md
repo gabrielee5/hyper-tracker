@@ -316,7 +316,7 @@ All components working correctly
 ### Standalone Use (Current)
 ```bash
 # Terminal 1: Phase 1 (Trade Tracker)
-python3 src/connection.py
+python3 fetcher/main.py
 
 # Terminal 2: Phase 2 (Analyzer)
 python3 analyzer/main.py

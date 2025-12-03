@@ -8,13 +8,13 @@ A production-ready system for real-time monitoring and tracking of trader addres
 
 ### Core Application Code
 
-1. **src/main.py** - Main application orchestrator
-2. **src/config.py** - Configuration management with Pydantic
-3. **src/connection.py** - Hyperliquid WebSocket connection manager
-4. **src/address_tracker.py** - Address extraction and batch processing
-5. **src/storage.py** - SQLite database operations
-6. **src/dashboard.py** - Flask web dashboard
-7. **src/utils.py** - Logging and utility functions
+1. **fetcher/main.py** - Main application orchestrator
+2. **fetcher/config.py** - Configuration management with Pydantic
+3. **fetcher/connection.py** - Hyperliquid WebSocket connection manager
+4. **fetcher/address_tracker.py** - Address extraction and batch processing
+5. **fetcher/storage.py** - SQLite database operations
+6. **fetcher/dashboard.py** - Flask web dashboard
+7. **fetcher/utils.py** - Logging and utility functions
 
 ### Configuration Files
 
@@ -106,7 +106,7 @@ A production-ready system for real-time monitoring and tracking of trader addres
 
 ```
 hyper-tracker/
-├── src/                      # Application source code
+├── fetcher/                  # Application source code
 │   ├── __init__.py
 │   ├── main.py               # Entry point
 │   ├── config.py             # Configuration

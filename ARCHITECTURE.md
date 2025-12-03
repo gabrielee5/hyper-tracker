@@ -370,7 +370,7 @@ POST /api/watch/{address}     # Add to watchlist
 
 ### Development
 ```bash
-python src/main.py
+python fetcher/main.py
 ```
 
 ### Production (Systemd)
@@ -383,7 +383,7 @@ After=network.target
 Type=simple
 User=tracker
 WorkingDirectory=/opt/hyper-tracker
-ExecStart=/opt/hyper-tracker/venv/bin/python src/main.py
+ExecStart=/opt/hyper-tracker/venv/bin/python fetcher/main.py
 Restart=always
 
 [Install]
@@ -397,7 +397,7 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install -r requirements.txt
 COPY . .
-CMD ["python", "src/main.py"]
+CMD ["python", "fetcher/main.py"]
 ```
 
 ## Monitoring & Observability

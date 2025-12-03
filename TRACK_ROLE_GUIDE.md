@@ -93,13 +93,13 @@ TRACK_ROLE=both
 ### Files Modified
 
 1. **`.env.example`**: Added `TRACK_ROLE` configuration option
-2. **`src/config.py`**: Added `track_role` field with validation
-3. **`src/address_tracker.py`**: Updated `process_trade_event()` to filter addresses based on role
-4. **`src/main.py`**: Pass `track_role` from config to tracker
+2. **`fetcher/config.py`**: Added `track_role` field with validation
+3. **`fetcher/address_tracker.py`**: Updated `process_trade_event()` to filter addresses based on role
+4. **`fetcher/main.py`**: Pass `track_role` from config to tracker
 
 ### Key Code Changes
 
-The address filtering logic in `src/address_tracker.py:70-90`:
+The address filtering logic in `fetcher/address_tracker.py:70-90`:
 
 ```python
 if self.track_role == "both":

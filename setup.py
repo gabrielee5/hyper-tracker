@@ -32,7 +32,7 @@ setup(
     install_requires=requirements,
     entry_points={
         "console_scripts": [
-            "hyper-tracker=src.main:main",
+            "hyper-tracker=fetcher.main:main",
         ],
     },
 )

@@ -71,7 +71,7 @@ Your complete system is ready to run! Here's everything you need to know:
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
   hyper-tracker/
-  ├── src/                     # Application code
+  ├── fetcher/                 # Application code
   │   ├── main.py              # Entry point
   │   ├── config.py            # Configuration
   │   ├── connection.py        # WebSocket manager

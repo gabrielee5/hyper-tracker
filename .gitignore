@@ -37,12 +37,12 @@ ENV/
 .env
 
 # Database
-src/data/*.db
-src/data/*.db-journal
+fetcher/data/*.db
+fetcher/data/*.db-journal
 data/
 
 # Logs
-src/logs/*.log
+fetcher/logs/*.log
 logs/
 
 # Analyzer

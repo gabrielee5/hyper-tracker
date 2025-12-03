@@ -254,7 +254,7 @@ concurrent_traders: 10            # Parallel processing
 batch_processing_interval: 300    # 5 minutes
 
 # Database paths
-phase1_db_path: "../src/data/addresses.db"    # READ-ONLY
+phase1_db_path: "../fetcher/data/addresses.db"    # READ-ONLY
 phase2_db_path: "./data/analyzed_traders.db"  # Phase 2 DB
 
 # Dashboard

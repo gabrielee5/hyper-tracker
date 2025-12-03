@@ -227,7 +227,7 @@ Parameters:
 
 ```
 hyper-tracker/
-├── src/
+├── fetcher/
 │   ├── __init__.py
 │   ├── main.py              # Entry point and main application
 │   ├── config.py            # Configuration management

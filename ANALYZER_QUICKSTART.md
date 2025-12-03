@@ -7,9 +7,9 @@
 1. **Phase 1 must be running** to collect trader addresses:
 ```bash
 # Check if Phase 1 database exists
-ls -la src/data/addresses.db
+ls -la fetcher/data/addresses.db
 # If not found, start Phase 1 first:
-python src/main.py
+python fetcher/main.py
 ```
 
 2. **Python 3.8+** installed
@@ -132,7 +132,7 @@ analysis:
 ```bash
 # Start Phase 1 and wait 5-10 minutes
 cd ..
-python src/main.py
+python fetcher/main.py
 ```
 
 ### "No addresses to analyze"

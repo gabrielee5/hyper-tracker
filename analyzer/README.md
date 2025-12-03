@@ -18,7 +18,7 @@ Unlike simple PnL tracking, this system uses multiple statistical methods includ
 
 This system is **completely independent** from the Phase 1 monitoring system:
 
-- ✅ **Read-only access** to Phase 1 database (`src/data/addresses.db`)
+- ✅ **Read-only access** to Phase 1 database (`fetcher/data/addresses.db`)
 - ✅ **Separate database** for analysis results (`analyzer/data/analyzed_traders.db`)
 - ✅ **Independent process** - runs as standalone service
 - ✅ **Fault tolerant** - crashes won't affect Phase 1
@@ -101,7 +101,7 @@ Measures return per unit of risk.
 
 ### Prerequisites
 
-1. **Phase 1 must be running** and have collected some addresses in `src/data/addresses.db`
+1. **Phase 1 must be running** and have collected some addresses in `fetcher/data/addresses.db`
 2. Python 3.8+ installed
 3. Virtual environment (recommended)
 
@@ -138,7 +138,7 @@ analysis:
   reanalysis_interval_days: 7 # Re-analyze weekly
 
 database:
-  phase1_db_path: "../src/data/addresses.db"  # READ-ONLY
+  phase1_db_path: "../fetcher/data/addresses.db"  # READ-ONLY
   phase2_db_path: "./data/analyzed_traders.db"
   batch_size: 100
   connection_timeout: 30
@@ -323,14 +323,14 @@ With default settings (10 concurrent traders, 20 API req/sec):
 
 ### "Phase 1 database not found"
 
-**Solution**: Ensure Phase 1 is running and has created `src/data/addresses.db`:
+**Solution**: Ensure Phase 1 is running and has created `fetcher/data/addresses.db`:
 ```bash
 # Check if Phase 1 database exists
-ls -la ../src/data/addresses.db
+ls -la ../fetcher/data/addresses.db
 
 # If not, start Phase 1 first
 cd ..
-python src/main.py
+python fetcher/main.py
 ```
 
 ### "API rate limit exceeded"
@@ -370,7 +370,7 @@ dashboard:
 ```bash
 # 1. Make sure Phase 1 is running
 cd /path/to/hyper-tracker
-python src/main.py &
+python fetcher/main.py &
 
 # 2. Wait for Phase 1 to collect some addresses (5-10 minutes)
 
