@@ -349,82 +349,93 @@
         function updateEquityChart(data) {
             const ctx = document.getElementById('equityChart').getContext('2d');
 
+            // Update existing chart data instead of recreating it
             if (equityChart) {
-                equityChart.destroy();
-            }
-
-            equityChart = new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: data.map(d => new Date(d.timestamp).toLocaleString()),
-                    datasets: [{
-                        label: 'Portfolio Value',
-                        data: data.map(d => d.equity),
-                        borderColor: '#4fc3f7',
-                        backgroundColor: 'rgba(79, 195, 247, 0.1)',
-                        fill: true,
-                        tension: 0.4
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            labels: { color: '#e0e0e0' }
-                        }
+                equityChart.data.labels = data.map(d => new Date(d.timestamp).toLocaleString());
+                equityChart.data.datasets[0].data = data.map(d => d.equity);
+                equityChart.update('none'); // 'none' mode disables animations
+            } else {
+                // Create chart only once
+                equityChart = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: data.map(d => new Date(d.timestamp).toLocaleString()),
+                        datasets: [{
+                            label: 'Portfolio Value',
+                            data: data.map(d => d.equity),
+                            borderColor: '#4fc3f7',
+                            backgroundColor: 'rgba(79, 195, 247, 0.1)',
+                            fill: true,
+                            tension: 0.4
+                        }]
                     },
-                    scales: {
-                        x: {
-                            ticks: { color: '#9e9e9e' },
-                            grid: { color: '#2a3f5f' }
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        animation: false, // Disable initial animation
+                        plugins: {
+                            legend: {
+                                labels: { color: '#e0e0e0' }
+                            }
                         },
-                        y: {
-                            ticks: {
-                                color: '#9e9e9e',
-                                callback: value => formatCurrency(value)
+                        scales: {
+                            x: {
+                                ticks: { color: '#9e9e9e' },
+                                grid: { color: '#2a3f5f' }
                             },
-                            grid: { color: '#2a3f5f' }
+                            y: {
+                                ticks: {
+                                    color: '#9e9e9e',
+                                    callback: value => formatCurrency(value)
+                                },
+                                grid: { color: '#2a3f5f' }
+                            }
                         }
                     }
-                }
-            });
+                });
+            }
         }
 
         // Update allocation pie chart
         function updateAllocationChart(positions) {
             const ctx = document.getElementById('allocationChart').getContext('2d');
 
-            if (allocationChart) {
-                allocationChart.destroy();
-            }
-
             const colors = positions.map(p =>
                 p.direction === 'LONG' ? 'rgba(76, 175, 80, 0.8)' : 'rgba(244, 67, 54, 0.8)'
             );
 
-            allocationChart = new Chart(ctx, {
-                type: 'pie',
-                data: {
-                    labels: positions.map(p => `${p.pair} ${p.direction}`),
-                    datasets: [{
-                        data: positions.map(p => p.current_size_usd),
-                        backgroundColor: colors,
-                        borderColor: '#1a1f3a',
-                        borderWidth: 2
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            position: 'right',
-                            labels: { color: '#e0e0e0' }
+            // Update existing chart data instead of recreating it
+            if (allocationChart) {
+                allocationChart.data.labels = positions.map(p => `${p.pair} ${p.direction}`);
+                allocationChart.data.datasets[0].data = positions.map(p => p.current_size_usd);
+                allocationChart.data.datasets[0].backgroundColor = colors;
+                allocationChart.update('none'); // 'none' mode disables animations
+            } else {
+                // Create chart only once
+                allocationChart = new Chart(ctx, {
+                    type: 'pie',
+                    data: {
+                        labels: positions.map(p => `${p.pair} ${p.direction}`),
+                        datasets: [{
+                            data: positions.map(p => p.current_size_usd),
+                            backgroundColor: colors,
+                            borderColor: '#1a1f3a',
+                            borderWidth: 2
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        animation: false, // Disable initial animation
+                        plugins: {
+                            legend: {
+                                position: 'right',
+                                labels: { color: '#e0e0e0' }
+                            }
                         }
                     }
-                }
-            });
+                });
+            }
         }
 
         // Update activity log
@@ -503,9 +514,30 @@
             }
         }
 
-        // Auto-refresh every 5 seconds
-        fetchData();
-        setInterval(fetchData, 5000);
+        // Initialize dashboard with config-based refresh interval
+        async function initDashboard() {
+            try {
+                // Fetch config to get update interval
+                const config = await fetch('/api/config').then(r => r.json());
+                const updateIntervalMs = config.update_interval_seconds * 1000;
+
+                console.log(`Dashboard refresh interval: ${config.update_interval_seconds} seconds`);
+
+                // Initial data fetch
+                fetchData();
+
+                // Set up auto-refresh with configured interval
+                setInterval(fetchData, updateIntervalMs);
+            } catch (error) {
+                console.error('Error initializing dashboard:', error);
+                // Fallback to 60 seconds if config fetch fails
+                fetchData();
+                setInterval(fetchData, 60000);
+            }
+        }
+
+        // Start dashboard
+        initDashboard();
     </script>
 </body>
 </html>

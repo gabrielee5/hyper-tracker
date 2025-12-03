@@ -26,11 +26,11 @@
   },
   "api": {
     "hyperliquid_rest": "https://api.hyperliquid.xyz",
-    "price_update_interval_seconds": 5
+    "price_update_interval_seconds": 300
   },
   "dashboard": {
     "port": 5003,
-    "update_interval_seconds": 5,
+    "update_interval_seconds": 300,
     "timezone": "UTC"
   },
   "logging": {

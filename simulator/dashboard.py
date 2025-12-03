@@ -32,7 +32,12 @@ def init_dashboard(sim: TradingSimulator):
 @app.route('/')
 def index():
     """Serve main dashboard page."""
-    return render_template('index.html')
+    response = app.make_response(render_template('index.html'))
+    # Prevent caching to ensure users get the latest version
+    response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+    response.headers['Pragma'] = 'no-cache'
+    response.headers['Expires'] = '0'
+    return response
 
 
 @app.route('/api/status')
@@ -260,6 +265,22 @@ def api_activity():
 
     except Exception as e:
         logger.error(f"Error getting activity: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/config')
+def api_config():
+    """Get dashboard configuration."""
+    try:
+        if not simulator:
+            return jsonify({'error': 'Simulator not initialized'}), 500
+
+        return jsonify({
+            'update_interval_seconds': simulator.config.dashboard_update_interval_seconds
+        })
+
+    except Exception as e:
+        logger.error(f"Error getting config: {e}")
         return jsonify({'error': str(e)}), 500
 
 
