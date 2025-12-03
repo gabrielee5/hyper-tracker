@@ -11,11 +11,16 @@ Coordinates all components:
 
 import asyncio
 import logging
+import os
 import signal
 import sys
 from datetime import datetime
 from pathlib import Path
 from typing import Optional
+
+# Ensure we're running from the contrarian directory
+script_dir = Path(__file__).parent
+os.chdir(script_dir)
 
 # Add parent directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent))

@@ -36,20 +36,14 @@ ENV/
 # Environment variables
 .env
 
-# Database
+# Database - All databases now in main data/ folder
 fetcher/data/*.db
 fetcher/data/*.db-journal
 data/
 
-# Logs
+# Logs - All logs now in main logs/ folder
 fetcher/logs/*.log
 logs/
-
-# Analyzer
-analyzer/data/*.db
-analyzer/logs/*.log
-analyzer/config/data/*.db
-analyzer/config/logs/*.log
 
 # OS
 .DS_Store

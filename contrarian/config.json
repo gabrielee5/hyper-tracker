@@ -5,7 +5,7 @@
     "strong": 0.70,
     "moderate": 0.60
   },
-  "update_interval_seconds": 90,
+  "update_interval_seconds": 300,
   "api": {
     "base_url": "https://api.hyperliquid.xyz",
     "rate_limit_calls": 15,
@@ -15,8 +15,8 @@
     "concurrency_limit": 10
   },
   "database": {
-    "phase2_path": "./analyzer/data/analyzed_traders.db",
-    "contrarian_path": "./contrarian/data/contrarian_signals.db"
+    "phase2_path": "../data/analyzed_traders.db",
+    "contrarian_path": "../data/contrarian_signals.db"
   },
   "dashboard": {
     "refresh_rate": 5,

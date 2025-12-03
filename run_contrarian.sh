@@ -35,14 +35,14 @@ if [ $? -ne 0 ]; then
 fi
 
 # Check if Phase 2 database exists
-if [ ! -f "analyzer/data/analyzed_traders.db" ]; then
+if [ ! -f "data/analyzed_traders.db" ]; then
     echo -e "${RED}❌ Phase 2 database not found!${NC}"
     echo -e "${YELLOW}Please run Phase 2 analyzer first: python3 analyzer/main.py${NC}"
     exit 1
 fi
 
 # Check for bad traders
-BAD_TRADER_COUNT=$(sqlite3 analyzer/data/analyzed_traders.db "SELECT COUNT(*) FROM scored_traders WHERE score <= 5" 2>/dev/null)
+BAD_TRADER_COUNT=$(sqlite3 data/analyzed_traders.db "SELECT COUNT(*) FROM scored_traders WHERE score <= 5" 2>/dev/null)
 
 if [ -z "$BAD_TRADER_COUNT" ] || [ "$BAD_TRADER_COUNT" -eq 0 ]; then
     echo -e "${RED}❌ No bad traders found in database!${NC}"
@@ -77,8 +77,8 @@ case $choice in
     3)
         echo -e "${GREEN}Recent signals:${NC}"
         echo ""
-        if [ -f "contrarian/data/contrarian_signals.db" ]; then
-            sqlite3 -header -column contrarian/data/contrarian_signals.db \
+        if [ -f "data/contrarian_signals.db" ]; then
+            sqlite3 -header -column data/contrarian_signals.db \
                 "SELECT datetime(timestamp, 'localtime') as time, coin, signal_direction, signal_strength, confidence_score
                  FROM contrarian_signals
                  ORDER BY timestamp DESC
