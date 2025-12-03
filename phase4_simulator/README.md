@@ -44,15 +44,19 @@ phase4_simulator/
    ```
 
 2. **Configure paths**:
-   Edit `config.json` to set the correct path to Phase 3 signals database:
+   The default `config.json` is already configured for the correct paths:
    ```json
    {
      "database": {
-       "signals_db": "../contrarian_signals.db",
-       "simulator_db": "./simulator.db"
+       "signals_db": "../data/contrarian_signals.db",
+       "simulator_db": "../data/simulator.db"
+     },
+     "logging": {
+       "file": "../logs/simulator.log"
      }
    }
    ```
+   All paths are relative to the `phase4_simulator` directory.
 
 ## Usage
 
@@ -241,7 +245,7 @@ The dashboard backend exposes these REST endpoints:
 
 ### Logs
 All activity is logged to:
-- `simulator.log` - Detailed simulator logs
+- `../logs/simulator.log` - Detailed simulator logs (in main project logs directory)
 - Console output - Key events and errors
 
 ### Log Levels

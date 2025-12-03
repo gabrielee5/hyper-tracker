@@ -18,16 +18,26 @@ from order_executor import OrderExecutor
 from portfolio_manager import PortfolioManager
 from performance_tracker import PerformanceTracker
 
-# Set up logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    handlers=[
-        logging.FileHandler('simulator.log'),
-        logging.StreamHandler()
-    ]
-)
 logger = logging.getLogger(__name__)
+
+
+def setup_logging(log_file: str, log_level: str = "INFO"):
+    """Setup logging configuration."""
+    import os
+    # Create logs directory if it doesn't exist
+    log_dir = os.path.dirname(log_file)
+    if log_dir and not os.path.exists(log_dir):
+        os.makedirs(log_dir, exist_ok=True)
+
+    logging.basicConfig(
+        level=getattr(logging, log_level.upper()),
+        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+        handlers=[
+            logging.FileHandler(log_file),
+            logging.StreamHandler()
+        ],
+        force=True  # Override any existing configuration
+    )
 
 
 class TradingSimulator:
@@ -35,13 +45,17 @@ class TradingSimulator:
 
     def __init__(self, config_path: str = "config.json"):
         """Initialize simulator with configuration."""
+        # Load configuration first
+        self.config = Config(config_path)
+
+        # Setup logging with config values
+        setup_logging(self.config.log_file, self.config.log_level)
+
         logger.info("=" * 80)
         logger.info("PAPER TRADING SIMULATOR STARTING")
         logger.info("=" * 80)
-
-        # Load configuration
-        self.config = Config(config_path)
         logger.info(f"Configuration loaded from {config_path}")
+        logger.info(f"Log file: {self.config.log_file}")
 
         # Initialize components
         self.db = SimulatorDatabase(self.config.simulator_db_path)

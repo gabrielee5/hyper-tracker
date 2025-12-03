@@ -22,7 +22,7 @@
   },
   "database": {
     "signals_db": "../data/contrarian_signals.db",
-    "simulator_db": "./simulator.db"
+    "simulator_db": "../data/simulator.db"
   },
   "api": {
     "hyperliquid_rest": "https://api.hyperliquid.xyz",
@@ -35,6 +35,6 @@
   },
   "logging": {
     "level": "INFO",
-    "file": "logs/simulator.log"
+    "file": "../logs/simulator.log"
   }
 }

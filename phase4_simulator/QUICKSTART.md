@@ -99,16 +99,27 @@ Press `Ctrl+C` to gracefully shut down. The simulator will:
 ## Monitoring Performance
 
 ### Logs
-Check `simulator.log` for detailed activity:
+Check the log file for detailed activity:
 ```bash
-tail -f simulator.log
+tail -f ../logs/simulator.log
+```
+
+Or from the main project directory:
+```bash
+tail -f logs/simulator.log
 ```
 
 ### Database
 Query the simulator database directly:
 ```bash
-sqlite3 simulator.db "SELECT * FROM positions;"
-sqlite3 simulator.db "SELECT * FROM trades ORDER BY timestamp DESC LIMIT 10;"
+sqlite3 ../data/simulator.db "SELECT * FROM positions;"
+sqlite3 ../data/simulator.db "SELECT * FROM trades ORDER BY timestamp DESC LIMIT 10;"
+```
+
+Or from the main project directory:
+```bash
+sqlite3 data/simulator.db "SELECT * FROM positions;"
+sqlite3 data/simulator.db "SELECT * FROM trades ORDER BY timestamp DESC LIMIT 10;"
 ```
 
 ### API Endpoints
@@ -247,7 +258,7 @@ Before running for extended periods:
 ## Support
 
 For issues:
-1. Check `simulator.log` for errors
+1. Check `../logs/simulator.log` for errors
 2. Verify Phase 3 is running
 3. Test Hyperliquid API: `curl https://api.hyperliquid.xyz/info`
 4. Review configuration in `config.json`
