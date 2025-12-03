@@ -53,3 +53,5 @@ Thumbs.db
 .pytest_cache/
 .coverage
 htmlcov/
+phase4_simulator/simulator.log
+phase4_simulator/simulator.db
