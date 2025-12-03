@@ -465,14 +465,18 @@ def create_dashboard_app(tracker, config):
     return app
 
 
-def start_dashboard(tracker, config):
+def start_dashboard(tracker, config, stop_event=None):
     """
     Start the dashboard server.
 
     Args:
         tracker: HyperliquidTracker instance
         config: Application configuration
+        stop_event: Optional threading.Event to signal shutdown
     """
+    from werkzeug.serving import make_server
+    import threading
+
     app = create_dashboard_app(tracker, config)
 
     # Disable Flask's default logging
@@ -480,12 +484,38 @@ def start_dashboard(tracker, config):
     flask_log = flask_logging.getLogger('werkzeug')
     flask_log.setLevel(flask_logging.ERROR)
 
+    server = None
     try:
-        app.run(
-            host=config.dashboard_host,
-            port=config.dashboard_port,
-            debug=False,
-            use_reloader=False
+        # Create server with proper shutdown capability
+        server = make_server(
+            config.dashboard_host,
+            config.dashboard_port,
+            app,
+            threaded=True
         )
+
+        logger.info(f"Dashboard server ready on {config.dashboard_host}:{config.dashboard_port}")
+
+        # Store server reference for shutdown
+        tracker._dashboard_server = server
+
+        # If stop_event is provided, monitor it in a separate thread
+        if stop_event:
+            def monitor_shutdown():
+                stop_event.wait()
+                if server:
+                    logger.info("Stop event triggered, shutting down dashboard...")
+                    server.shutdown()
+
+            monitor_thread = threading.Thread(target=monitor_shutdown, daemon=True)
+            monitor_thread.start()
+
+        # Run server (will block until shutdown() is called)
+        server.serve_forever()
+
     except Exception as e:
         logger.error(f"Dashboard error: {e}", exc_info=True)
+    finally:
+        if server:
+            server.server_close()
+        logger.info("Dashboard server stopped")

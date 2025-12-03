@@ -111,6 +111,13 @@ class HyperliquidConnection:
             for coin in list(self.subscription_ids.keys()):
                 self.unsubscribe_from_trades(coin)
 
+            # Properly close the WebSocket connection
+            try:
+                self.info.disconnect_websocket()
+                logger.info("WebSocket disconnected")
+            except Exception as e:
+                logger.warning(f"Error disconnecting WebSocket: {e}")
+
             self.info = None
             self.is_connected = False
             logger.info("Disconnected from Hyperliquid")

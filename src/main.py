@@ -36,6 +36,7 @@ class HyperliquidTracker:
         self.is_running = False
         self.stop_event = Event()
         self.start_time = datetime.now()
+        self._dashboard_server = None
 
         # Setup signal handlers for graceful shutdown
         signal.signal(signal.SIGINT, self._signal_handler)
@@ -166,12 +167,21 @@ class HyperliquidTracker:
         self.is_running = False
         self.stop_event.set()
 
-        # Flush any remaining addresses
+        # Stop dashboard server first to prevent new requests
+        if self._dashboard_server:
+            logger.info("Shutting down dashboard server...")
+            try:
+                self._dashboard_server.shutdown()
+            except Exception as e:
+                logger.warning(f"Error shutting down dashboard: {e}")
+
+        # Disconnect from Hyperliquid first to stop receiving messages
+        logger.info("Disconnecting from Hyperliquid...")
+        self.connection.disconnect()
+
+        # Flush any remaining addresses after disconnect
         logger.info("Flushing remaining addresses...")
         self._flush_batch()
-
-        # Disconnect from Hyperliquid
-        self.connection.disconnect()
 
         # Final statistics
         tracker_stats = self.tracker.get_statistics()
@@ -187,7 +197,6 @@ class HyperliquidTracker:
         logger.info("=" * 80)
 
         logger.info("Tracker stopped")
-        sys.exit(0)
 
 
 def main():
@@ -210,7 +219,7 @@ def main():
         from dashboard import start_dashboard
         dashboard_thread = Thread(
             target=start_dashboard,
-            args=(tracker, config),
+            args=(tracker, config, tracker.stop_event),
             daemon=True
         )
         dashboard_thread.start()
