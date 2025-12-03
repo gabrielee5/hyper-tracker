@@ -16,7 +16,7 @@ analysis:
   reanalysis_interval_days: 7
 
 database:
-  phase1_db_path: "../fetcher/data/addresses.db"  # READ-ONLY
+  phase1_db_path: "../data/addresses.db"  # READ-ONLY - main data folder
   phase2_db_path: "./data/analyzed_traders.db"
   batch_size: 100
   connection_timeout: 30

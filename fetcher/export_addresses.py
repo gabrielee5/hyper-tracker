@@ -1,26 +1,26 @@
 #!/usr/bin/env python3
 """Export addresses from database to CSV."""
 
-import sys
+import os
 from pathlib import Path
-
-# Add src to path
-sys.path.insert(0, str(Path(__file__).parent / "src"))
-
 from config import Config
 from storage import AddressStorage
 
 
 def main():
     """Export addresses to CSV."""
+    # Ensure we're working from the script's directory (fetcher/)
+    script_dir = Path(__file__).parent
+    os.chdir(script_dir)
+
     # Load configuration
     config = Config.from_env()
 
     # Initialize storage
     storage = AddressStorage(config.database_path)
 
-    # Export to CSV
-    output_file = Path("data/addresses_export.csv")
+    # Export to CSV in main data folder
+    output_file = Path("../data/addresses_export.csv")
     output_file.parent.mkdir(parents=True, exist_ok=True)
 
     storage.export_addresses(output_file)

@@ -1,18 +1,18 @@
 #!/usr/bin/env python3
 """Query addresses from database."""
 
-import sys
+import os
 from pathlib import Path
-
-# Add src to path
-sys.path.insert(0, str(Path(__file__).parent / "src"))
-
 from config import Config
 from storage import AddressStorage
 
 
 def main():
     """Query and display addresses."""
+    # Ensure we're working from the script's directory
+    script_dir = Path(__file__).parent
+    os.chdir(script_dir)
+
     # Load configuration
     config = Config.from_env()
 
