@@ -8,7 +8,7 @@ from Phase 1, ensuring complete isolation.
 import aiosqlite
 import asyncio
 import logging
-from typing import List, Dict, Optional, Tuple
+from typing import List, Dict, Optional, Tuple, Set
 from datetime import datetime, timedelta
 from pathlib import Path
 from contextlib import asynccontextmanager
@@ -538,3 +538,55 @@ class Phase1DatabaseReader:
                     columns = [description[0] for description in cursor.description]
                     return dict(zip(columns, row))
                 return None
+
+
+class AnalyzerDatabaseReader:
+    """
+    Additional read operations for the analyzer database.
+
+    Separated to keep AnalyzerDatabase focused on write operations.
+    """
+
+    def __init__(self, db_path: str):
+        """
+        Initialize analyzer database reader.
+
+        Args:
+            db_path: Path to analyzed_traders.db
+        """
+        self.db_path = Path(db_path)
+
+    @asynccontextmanager
+    async def _get_connection(self):
+        """Get read-only connection to analyzer database."""
+        if not self.db_path.exists():
+            # Return empty connection if DB doesn't exist yet
+            conn = await aiosqlite.connect(":memory:")
+            try:
+                yield conn
+            finally:
+                await conn.close()
+            return
+
+        uri = f"file:{self.db_path}?mode=ro"
+        conn = await aiosqlite.connect(uri, uri=True)
+        try:
+            yield conn
+        finally:
+            await conn.close()
+
+    async def get_all_analyzed_addresses(self) -> Set[str]:
+        """
+        Get all addresses that have been analyzed.
+
+        Returns:
+            Set of addresses that exist in scored_traders table
+        """
+        async with self._get_connection() as db:
+            try:
+                async with db.execute("SELECT address FROM scored_traders") as cursor:
+                    rows = await cursor.fetchall()
+                    return {row[0] for row in rows}
+            except Exception:
+                # Table might not exist yet
+                return set()

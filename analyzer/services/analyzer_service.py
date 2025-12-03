@@ -12,7 +12,7 @@ from datetime import datetime, timedelta
 
 from ..core.api_client import HyperliquidAPIClient, FillsCache, HyperliquidAPIError
 from ..core.statistics import StatisticalAnalyzer
-from ..core.database import AnalyzerDatabase, Phase1DatabaseReader
+from ..core.database import AnalyzerDatabase, Phase1DatabaseReader, AnalyzerDatabaseReader
 from ..core.config import Config
 from .alert_service import AlertService
 
@@ -63,6 +63,10 @@ class AnalyzerService:
 
         self.phase1_db = Phase1DatabaseReader(
             db_path=str(config.get_phase1_db_absolute_path())
+        )
+
+        self.phase2_db_reader = AnalyzerDatabaseReader(
+            db_path=str(config.get_phase2_db_absolute_path())
         )
 
         self.alert_service = AlertService(
@@ -282,31 +286,39 @@ class AnalyzerService:
         recently_active_addrs = [addr for addr, _ in recently_active]
         logger.info(f"Found {len(recently_active_addrs)} recently active addresses")
 
-        # Get stale analyses
+        # Get already analyzed addresses (to exclude from new analysis)
+        already_analyzed = await self.phase2_db_reader.get_all_analyzed_addresses()
+        logger.info(f"Found {len(already_analyzed)} already analyzed addresses")
+
+        # Get stale analyses (these need re-analysis even though already analyzed)
         stale_addresses = await self.database.get_stale_analyses(
             days_old=self.config.analysis.reanalysis_interval_days,
             limit=limit
         )
+        stale_set = set(stale_addresses)
         logger.info(f"Found {len(stale_addresses)} stale analyses")
 
-        # Priority 1: Recently active addresses
-        addresses_to_analyze.update(recently_active_addrs)
+        # Priority 1: Recently active addresses (only if new or stale)
+        for addr in recently_active_addrs:
+            if addr not in already_analyzed or addr in stale_set:
+                addresses_to_analyze.add(addr)
 
-        # Priority 2: Stale analyses
+        # Priority 2: Stale analyses (these need re-analysis)
         addresses_to_analyze.update(stale_addresses)
 
-        # Priority 3: Random sample of remaining addresses
+        # Priority 3: Random sample of remaining addresses (exclude already analyzed)
         if limit and len(addresses_to_analyze) < limit:
             remaining = limit - len(addresses_to_analyze)
             import random
             unanalyzed = [
                 addr for addr in all_addresses
-                if addr not in addresses_to_analyze
+                if addr not in addresses_to_analyze and addr not in already_analyzed
             ]
             if unanalyzed:
                 sample_size = min(remaining, len(unanalyzed))
                 sample = random.sample(unanalyzed, sample_size)
                 addresses_to_analyze.update(sample)
+                logger.info(f"Added {len(sample)} new unanalyzed addresses")
 
         result = list(addresses_to_analyze)
         if limit:
