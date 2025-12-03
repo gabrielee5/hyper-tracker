@@ -7,7 +7,7 @@
   },
   "strategy": {
     "rebalance_interval_seconds": 900,
-    "min_confidence_threshold": 0.60,
+    "min_confidence_threshold": 0.50,
     "max_positions": 10,
     "min_trade_size_usd": 1000
   },
