@@ -40,6 +40,9 @@ class TraderMetrics:
     # Account information
     account_balance: Optional[float] = None
 
+    # Trade timing
+    first_trade_time: Optional[int] = None  # Timestamp in milliseconds
+
 
 class StatisticalAnalyzer:
     """
@@ -89,6 +92,9 @@ class StatisticalAnalyzer:
         if len(pnl_values) < self.min_trades:
             return None
 
+        # Extract first trade timestamp
+        first_trade_time = self._extract_first_trade_time(fills)
+
         # Calculate all metrics
         basic_stats = self._calculate_basic_statistics(pnl_values)
         win_loss_stats = self._calculate_win_loss_statistics(pnl_values)
@@ -116,7 +122,8 @@ class StatisticalAnalyzer:
             p_value=statistical_tests['p_value'],
             monte_carlo_percentile=monte_carlo_result,
             score=score,
-            is_statistically_bad=(score < 5 and statistical_tests['p_value'] < self.p_value_threshold)
+            is_statistically_bad=(score < 5 and statistical_tests['p_value'] < self.p_value_threshold),
+            first_trade_time=first_trade_time
         )
 
     def _extract_pnl(self, fills: List[Dict]) -> np.ndarray:
@@ -141,6 +148,34 @@ class StatisticalAnalyzer:
                     continue
 
         return np.array(pnl_values)
+
+    def _extract_first_trade_time(self, fills: List[Dict]) -> Optional[int]:
+        """
+        Extract the timestamp of the first (oldest) trade.
+
+        Args:
+            fills: List of fill dictionaries
+
+        Returns:
+            Timestamp in milliseconds of the first trade, or None if no valid timestamps
+        """
+        if not fills:
+            return None
+
+        # Find the oldest trade by looking at the 'time' field
+        # The fills are typically returned in reverse chronological order (newest first)
+        oldest_time = None
+
+        for fill in fills:
+            if 'time' in fill and fill['time'] is not None:
+                try:
+                    time_ms = int(fill['time'])
+                    if oldest_time is None or time_ms < oldest_time:
+                        oldest_time = time_ms
+                except (ValueError, TypeError):
+                    continue
+
+        return oldest_time
 
     def _calculate_basic_statistics(self, pnl_values: np.ndarray) -> Dict[str, float]:
         """Calculate basic statistical measures."""

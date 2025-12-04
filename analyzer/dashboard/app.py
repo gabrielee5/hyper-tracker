@@ -591,6 +591,12 @@ DASHBOARD_HTML = """
                     <h3>📅 Analysis Info</h3>
                     <div class="metric-grid">
                         <div class="metric-box">
+                            <div class="metric-label">First Trade</div>
+                            <div class="metric-value" style="font-size: 1em;">
+                                ${trader.first_trade_time ? new Date(trader.first_trade_time).toLocaleString() : 'N/A'}
+                            </div>
+                        </div>
+                        <div class="metric-box">
                             <div class="metric-label">Last Analyzed</div>
                             <div class="metric-value" style="font-size: 1em;">
                                 ${new Date(trader.last_analyzed).toLocaleString()}

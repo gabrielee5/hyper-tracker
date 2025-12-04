@@ -75,6 +75,9 @@ class AnalyzerDatabase:
                     -- Account information
                     account_balance REAL,
 
+                    -- Trade timing
+                    first_trade_time INTEGER,
+
                     -- Metadata
                     last_analyzed TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
                     is_statistically_bad BOOLEAN NOT NULL DEFAULT 0
@@ -147,8 +150,8 @@ class AnalyzerDatabase:
                     address, score, total_pnl, mean_pnl_per_trade, std_dev,
                     sharpe_ratio, expected_value, t_statistic, p_value,
                     monte_carlo_percentile, num_trades, win_rate, avg_win,
-                    avg_loss, account_balance, last_analyzed, is_statistically_bad
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    avg_loss, account_balance, first_trade_time, last_analyzed, is_statistically_bad
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ON CONFLICT(address) DO UPDATE SET
                     score = excluded.score,
                     total_pnl = excluded.total_pnl,
@@ -164,6 +167,7 @@ class AnalyzerDatabase:
                     avg_win = excluded.avg_win,
                     avg_loss = excluded.avg_loss,
                     account_balance = excluded.account_balance,
+                    first_trade_time = excluded.first_trade_time,
                     last_analyzed = excluded.last_analyzed,
                     is_statistically_bad = excluded.is_statistically_bad
             """, (
@@ -182,6 +186,7 @@ class AnalyzerDatabase:
                 metrics.avg_win,
                 metrics.avg_loss,
                 metrics.account_balance,
+                metrics.first_trade_time,
                 datetime.now().isoformat(),
                 metrics.is_statistically_bad
             ))
