@@ -333,7 +333,7 @@ async def main():
             engine.web_dashboard.run_in_thread()
             logger.info("")
             logger.info("=" * 80)
-            logger.info("Web Dashboard: http://127.0.0.1:5000")
+            logger.info(f"Web Dashboard: http://127.0.0.1:{engine.web_dashboard.port}")
             logger.info("=" * 80)
             logger.info("")
 
