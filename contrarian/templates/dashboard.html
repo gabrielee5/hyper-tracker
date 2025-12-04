@@ -345,21 +345,39 @@
             return `${emoji[key] || ''} ${direction}`;
         }
 
-        function createPositionBar(longPct, shortPct, longVal, shortVal, isUsd = false) {
+        function formatChange(change) {
+            if (!change || change === 0) {
+                return '<span style="color: #999;">(±0)</span>';
+            } else if (change > 0) {
+                return `<span style="color: #28a745;">(+${change})</span>`;
+            } else {
+                return `<span style="color: #dc3545;">(${change})</span>`;
+            }
+        }
+
+        function createPositionBar(longPct, shortPct, longVal, shortVal, longChange = 0, shortChange = 0, isUsd = false) {
             const longLabel = isUsd ? `$${(longVal/1000).toFixed(0)}K` : Math.round(longVal);
             const shortLabel = isUsd ? `$${(shortVal/1000).toFixed(0)}K` : Math.round(shortVal);
 
+            // Only show changes for count-based (not USD)
+            const changeInfo = !isUsd ? `<div style="font-size: 11px; color: #666; margin-top: 4px;">
+                L${formatChange(longChange)} S${formatChange(shortChange)}
+            </div>` : '';
+
             return `
-                <div class="position-bar-container">
-                    <div class="position-bar">
-                        <div class="bar-long" style="width: ${longPct}%">
-                            ${longPct > 15 ? longPct.toFixed(0) + '%' : ''}
+                <div>
+                    <div class="position-bar-container">
+                        <div class="position-bar">
+                            <div class="bar-long" style="width: ${longPct}%">
+                                ${longPct > 15 ? longPct.toFixed(0) + '%' : ''}
+                            </div>
+                            <div class="bar-short" style="width: ${shortPct}%">
+                                ${shortPct > 15 ? shortPct.toFixed(0) + '%' : ''}
+                            </div>
                         </div>
-                        <div class="bar-short" style="width: ${shortPct}%">
-                            ${shortPct > 15 ? shortPct.toFixed(0) + '%' : ''}
-                        </div>
+                        <div class="position-label">L:${longLabel} S:${shortLabel}</div>
                     </div>
-                    <div class="position-label">L:${longLabel} S:${shortLabel}</div>
+                    ${changeInfo}
                 </div>
             `;
         }
@@ -389,6 +407,11 @@
                 const isPriority = priorityCoins.includes(signal.coin);
                 const priorityBadge = isPriority ? '<span class="priority-badge">PRIORITY</span>' : '';
 
+                // Get change values (default to 0 if not present)
+                const totalChange = signal.total_traders_change || 0;
+                const longChange = signal.long_count_change || 0;
+                const shortChange = signal.short_count_change || 0;
+
                 html += `
                     <tr>
                         <td class="coin-name">${signal.coin}${priorityBadge}</td>
@@ -399,12 +422,16 @@
                         <td class="right-align ${getConfidenceClass(signal.confidence_score)}">
                             ${formatConfidence(signal.confidence_score)}
                         </td>
-                        <td class="right-align">${signal.bad_traders_total}</td>
+                        <td class="right-align">
+                            ${signal.bad_traders_total} ${formatChange(totalChange)}
+                        </td>
                         <td>${createPositionBar(
                             signal.long_percentage,
                             signal.short_percentage,
                             signal.long_count,
                             signal.short_count,
+                            longChange,
+                            shortChange,
                             false
                         )}</td>
                         <td>${createPositionBar(
@@ -412,6 +439,8 @@
                             signal.short_usd_percentage,
                             signal.long_usd_value,
                             signal.short_usd_value,
+                            0,
+                            0,
                             true
                         )}</td>
                     </tr>

@@ -177,7 +177,7 @@ class ContrarianDashboard:
         table.add_column("Signal", width=12)
         table.add_column("Strength", width=10)
         table.add_column("Conf", justify="right", width=6)
-        table.add_column("Traders", justify="right", width=8)
+        table.add_column("Traders", justify="right", width=12)
 
         if self.show_size_weighted:
             table.add_column("Count-Based", width=25)
@@ -193,6 +193,11 @@ class ContrarianDashboard:
             confidence = signal['confidence_score']
             total_traders = signal['bad_traders_total']
 
+            # Get change values (default to 0 if not present)
+            total_change = signal.get('total_traders_change', 0)
+            long_change = signal.get('long_count_change', 0)
+            short_change = signal.get('short_count_change', 0)
+
             # Format signal direction with emoji/color
             signal_text = self._format_signal_direction(direction, strength)
 
@@ -202,7 +207,10 @@ class ContrarianDashboard:
             # Format confidence
             conf_text = self._format_confidence(confidence)
 
-            # Create positioning visualizations
+            # Format traders count with change indicator
+            traders_text = f"{total_traders} {self._format_change(total_change)}"
+
+            # Create positioning visualizations with change info
             if self.show_size_weighted:
                 count_viz = self._create_position_bar(
                     signal['long_percentage'],
@@ -210,6 +218,9 @@ class ContrarianDashboard:
                     signal['long_count'],
                     signal['short_count']
                 )
+                # Add change indicators to count-based positioning
+                count_viz += f"\n L{self._format_change(long_change)} S{self._format_change(short_change)}"
+
                 size_viz = self._create_position_bar(
                     signal['long_usd_percentage'],
                     signal['short_usd_percentage'],
@@ -222,7 +233,7 @@ class ContrarianDashboard:
                     signal_text,
                     strength_text,
                     conf_text,
-                    str(total_traders),
+                    traders_text,
                     count_viz,
                     size_viz
                 )
@@ -233,12 +244,15 @@ class ContrarianDashboard:
                     signal['long_count'],
                     signal['short_count']
                 )
+                # Add change indicators to positioning
+                position_viz += f"\n L{self._format_change(long_change)} S{self._format_change(short_change)}"
+
                 table.add_row(
                     coin,
                     signal_text,
                     strength_text,
                     conf_text,
-                    str(total_traders),
+                    traders_text,
                     position_viz
                 )
 
@@ -280,6 +294,23 @@ class ContrarianDashboard:
             return Text(conf_str, style="yellow")
         else:
             return Text(conf_str, style="dim")
+
+    def _format_change(self, change: int) -> str:
+        """
+        Format change value with +/- indicator and color.
+
+        Args:
+            change: Change value (positive or negative)
+
+        Returns:
+            Formatted string with color codes
+        """
+        if change == 0:
+            return "[dim](±0)[/dim]"
+        elif change > 0:
+            return f"[green](+{change})[/green]"
+        else:
+            return f"[red]({change})[/red]"
 
     def _create_position_bar(
         self,

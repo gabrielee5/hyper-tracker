@@ -332,6 +332,31 @@ class ContrarianDatabase:
                 columns = [description[0] for description in cursor.description]
                 return [dict(zip(columns, row)) for row in rows]
 
+    async def get_previous_signal(self, coin: str) -> Optional[Dict]:
+        """
+        Get the previous signal for a specific coin (second most recent).
+
+        Args:
+            coin: Coin symbol to query
+
+        Returns:
+            Previous signal dictionary or None if not found
+        """
+        query = """
+            SELECT * FROM contrarian_signals
+            WHERE coin = ?
+            ORDER BY timestamp DESC
+            LIMIT 1 OFFSET 1
+        """
+
+        async with self._get_connection() as db:
+            async with db.execute(query, (coin,)) as cursor:
+                row = await cursor.fetchone()
+                if row:
+                    columns = [description[0] for description in cursor.description]
+                    return dict(zip(columns, row))
+                return None
+
     async def get_signal_statistics(self, coin: Optional[str] = None) -> Dict:
         """
         Get statistics about historical signals.

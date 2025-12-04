@@ -199,7 +199,24 @@ class ContrarianEngine:
 
             logger.info(f"Generated {len(signals)} signals")
 
-            # 6. Save signals to database
+            # 6. Enrich signals with change data (before saving)
+            if signals:
+                for signal in signals:
+                    # Get previous signal for this coin to calculate changes
+                    prev_signal = await self.contrarian_db.get_previous_signal(signal['coin'])
+
+                    if prev_signal:
+                        # Calculate changes in trader counts
+                        signal['total_traders_change'] = signal['bad_traders_total'] - prev_signal['bad_traders_total']
+                        signal['long_count_change'] = signal['long_count'] - prev_signal['long_count']
+                        signal['short_count_change'] = signal['short_count'] - prev_signal['short_count']
+                    else:
+                        # No previous data, set changes to 0
+                        signal['total_traders_change'] = 0
+                        signal['long_count_change'] = 0
+                        signal['short_count_change'] = 0
+
+            # 7. Save signals to database
             if signals:
                 for signal in signals:
                     await self.contrarian_db.save_signal(signal)
