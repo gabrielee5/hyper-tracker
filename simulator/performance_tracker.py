@@ -174,7 +174,8 @@ class PerformanceTracker:
                                   if trade['pnl'] and trade['pnl'] < 0))
 
             if total_losses == 0:
-                return None if total_wins == 0 else float('inf')
+                # Return None instead of infinity for JSON compatibility
+                return None
 
             profit_factor = total_wins / total_losses
 
