@@ -33,6 +33,7 @@ class AnalysisConfig:
     alert_score_threshold: int
     monte_carlo_iterations: int
     reanalysis_interval_days: int
+    min_first_trade_age_days: int = 5  # Minimum age of first trade in days
 
 
 @dataclass

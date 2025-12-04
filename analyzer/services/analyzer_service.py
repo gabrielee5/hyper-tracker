@@ -150,6 +150,27 @@ class AnalyzerService:
                 )
                 return False
 
+            # Check if first trade is at least min_first_trade_age_days old
+            if metrics.first_trade_time is not None:
+                current_time_ms = int(datetime.utcnow().timestamp() * 1000)
+                min_age_days = self.config.analysis.min_first_trade_age_days
+                min_age_ms = min_age_days * 24 * 60 * 60 * 1000  # Convert days to milliseconds
+                first_trade_age_ms = current_time_ms - metrics.first_trade_time
+
+                if first_trade_age_ms < min_age_ms:
+                    days_old = first_trade_age_ms / (24 * 60 * 60 * 1000)
+                    logger.info(
+                        f"First trade too recent for {self._shorten_address(address)}: "
+                        f"{days_old:.1f} days old (need {min_age_days} days)"
+                    )
+                    self.stats['insufficient_data'] += 1
+                    await self.database.log_analysis(
+                        address=address,
+                        status='first_trade_too_recent',
+                        trades_fetched=len(fills)
+                    )
+                    return False
+
             # Fetch account balance
             try:
                 user_state = await self.api_client.fetch_user_state(address)
