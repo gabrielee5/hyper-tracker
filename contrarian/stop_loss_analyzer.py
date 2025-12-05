@@ -82,6 +82,45 @@ class StopLossAnalyzer:
         if self._session and not self._session.closed:
             await self._session.close()
 
+    async def fetch_current_price(self, coin: str) -> Optional[float]:
+        """
+        Fetch current mid price for a coin.
+
+        Args:
+            coin: Coin symbol (e.g., "BTC", "ETH")
+
+        Returns:
+            Current mid price or None if error
+        """
+        payload = {
+            "type": "allMids"
+        }
+
+        try:
+            async with self.rate_limiter:
+                session = await self._get_session()
+                async with session.post(
+                    f"{self.base_url}/info",
+                    json=payload,
+                    headers={"Content-Type": "application/json"}
+                ) as response:
+                    if response.status == 429:
+                        await self._activate_circuit_breaker()
+                        return await self.fetch_current_price(coin)
+
+                    response.raise_for_status()
+                    data = await response.json()
+
+                    if isinstance(data, dict) and coin in data:
+                        return float(data[coin])
+
+                    logger.warning(f"Price not found for {coin}")
+                    return None
+
+        except Exception as e:
+            logger.warning(f"Failed to fetch current price for {coin}: {e}")
+            return None
+
     async def _activate_circuit_breaker(self):
         """Activate circuit breaker to pause requests."""
         if not self._circuit_breaker_active:
@@ -219,6 +258,7 @@ class StopLossAnalyzer:
         self,
         stop_losses: List[Dict],
         coin: str,
+        current_price: Optional[float] = None,
         num_bins: int = 15
     ):
         """
@@ -227,6 +267,7 @@ class StopLossAnalyzer:
         Args:
             stop_losses: List of stop loss orders
             coin: Coin symbol
+            current_price: Current market price (optional)
             num_bins: Number of bins for histogram
         """
         if not stop_losses:
@@ -256,6 +297,8 @@ class StopLossAnalyzer:
         print(f"Total stop loss orders: {len(prices)}")
         print(f"Price range: ${min(prices):,.2f} - ${max(prices):,.2f}")
         print(f"Median price: ${sorted(prices)[len(prices)//2]:,.2f}")
+        if current_price:
+            print(f"Current price: ${current_price:,.2f}")
         print(f"{'='*60}\n")
 
         # Create matplotlib figure
@@ -273,6 +316,12 @@ class StopLossAnalyzer:
         ax1.set_title('Stop Loss Order Distribution', fontsize=13, fontweight='bold')
         ax1.grid(True, alpha=0.3, linestyle='--')
 
+        # Add current price line to histogram
+        if current_price:
+            ax1.axvline(current_price, color='green', linestyle='--',
+                       linewidth=2.5, label=f'Current Price: ${current_price:,.2f}')
+            ax1.legend(loc='upper right', fontsize=10)
+
         # Add value labels on bars
         for i, (count, patch) in enumerate(zip(counts, patches)):
             if count > 0:
@@ -281,49 +330,49 @@ class StopLossAnalyzer:
                         f'{int(count)}',
                         ha='center', va='bottom', fontsize=9, fontweight='bold')
 
-        # Bottom plot: Price levels with horizontal bars
-        # Group prices into bins for visualization
-        price_range = max(prices) - min(prices)
-        bin_size = price_range / num_bins if price_range > 0 else 1
+        # Bottom plot: Individual stop loss lines
+        ax2.set_title('Individual Stop Loss Levels', fontsize=13, fontweight='bold')
+        ax2.set_ylabel('Stop Loss Price (USD)', fontsize=12, fontweight='bold')
+        ax2.set_xlabel('Order Count', fontsize=12, fontweight='bold')
 
-        bins_dict = {}
-        for price in prices:
-            bin_key = int(price / bin_size) * bin_size
-            if bin_key not in bins_dict:
-                bins_dict[bin_key] = []
-            bins_dict[bin_key].append(price)
+        # Count occurrences of each price
+        from collections import Counter
+        price_counts = Counter(prices)
+        unique_prices = sorted(price_counts.keys())
 
-        # Create horizontal bar chart
-        bin_centers = []
-        bin_counts = []
-        for bin_start in sorted(bins_dict.keys()):
-            bin_center = bin_start + bin_size / 2
-            bin_centers.append(bin_center)
-            bin_counts.append(len(bins_dict[bin_start]))
+        # Plot horizontal lines for each unique stop loss price
+        for price in unique_prices:
+            count = price_counts[price]
+            # Line length proportional to count
+            ax2.hlines(price, 0, count, colors='#ff6b6b', linewidth=3, alpha=0.7)
+            # Add a marker at the end
+            ax2.plot(count, price, 'o', color='#ff6b6b', markersize=8, alpha=0.9)
+            # Add count label
+            ax2.text(count + 0.1, price, f'{count}',
+                    va='center', fontsize=9, fontweight='bold')
 
-        bars = ax2.barh(bin_centers, bin_counts, height=bin_size*0.8,
-                       color='#4ecdc4', alpha=0.7, edgecolor='black', linewidth=1.2)
+        # Add current price line
+        if current_price:
+            ax2.axhline(current_price, color='green', linestyle='--',
+                       linewidth=2.5, label=f'Current Price: ${current_price:,.2f}',
+                       zorder=10)
+            ax2.legend(loc='upper right', fontsize=10)
 
-        ax2.set_ylabel('Stop Loss Price Level (USD)', fontsize=12, fontweight='bold')
-        ax2.set_xlabel('Number of Orders', fontsize=12, fontweight='bold')
-        ax2.set_title('Stop Loss Clustering by Price Level', fontsize=13, fontweight='bold')
-        ax2.grid(True, alpha=0.3, linestyle='--', axis='x')
-
-        # Add value labels on bars
-        for bar, count in zip(bars, bin_counts):
-            width = bar.get_width()
-            ax2.text(width, bar.get_y() + bar.get_height()/2.,
-                    f' {int(count)}',
-                    ha='left', va='center', fontsize=9, fontweight='bold')
+        ax2.grid(True, alpha=0.3, linestyle='--', axis='both')
+        ax2.set_xlim(0, max(price_counts.values()) * 1.15)
 
         # Add statistics text box
         stats_text = (
             f"Total Orders: {len(prices)}\n"
+            f"Unique Levels: {len(unique_prices)}\n"
             f"Min Price: ${min(prices):,.2f}\n"
             f"Max Price: ${max(prices):,.2f}\n"
             f"Median: ${sorted(prices)[len(prices)//2]:,.2f}\n"
             f"Mean: ${sum(prices)/len(prices):,.2f}"
         )
+
+        if current_price:
+            stats_text += f"\nCurrent: ${current_price:,.2f}"
 
         props = dict(boxstyle='round', facecolor='wheat', alpha=0.8)
         fig.text(0.02, 0.98, stats_text, transform=fig.transFigure,
@@ -403,8 +452,17 @@ async def main():
             f"{traders_with_sl} traders"
         )
 
+        # Fetch current price
+        logger.info(f"Fetching current price for {target_coin}...")
+        current_price = await analyzer.fetch_current_price(target_coin)
+
+        if current_price:
+            logger.info(f"Current {target_coin} price: ${current_price:,.2f}")
+        else:
+            logger.warning("Could not fetch current price")
+
         # Visualize distribution
-        analyzer.visualize_distribution(all_stop_losses, target_coin)
+        analyzer.visualize_distribution(all_stop_losses, target_coin, current_price)
 
     finally:
         await analyzer.close()
