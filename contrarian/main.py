@@ -106,6 +106,7 @@ class ContrarianEngine:
 
         # State
         self.running = False
+        self.stop_event = asyncio.Event()
         self.last_signals = []
         self.bad_traders_count = 0
         self.traders_with_positions = 0
@@ -282,9 +283,18 @@ class ContrarianEngine:
                             self.traders_with_positions
                         )
 
-                # Wait for next cycle
+                # Wait for next cycle (can be interrupted by stop_event)
                 logger.info(f"Waiting {self.config.update_interval_seconds}s for next update...")
-                await asyncio.sleep(self.config.update_interval_seconds)
+                try:
+                    await asyncio.wait_for(
+                        self.stop_event.wait(),
+                        timeout=self.config.update_interval_seconds
+                    )
+                    # If we get here, stop_event was set, so break the loop
+                    break
+                except asyncio.TimeoutError:
+                    # Timeout is normal - just means it's time for next cycle
+                    pass
 
         except asyncio.CancelledError:
             logger.info("Monitoring cancelled")
@@ -320,6 +330,7 @@ async def main():
     def signal_handler(sig, frame):
         logger.info("Shutdown signal received")
         engine.running = False
+        engine.stop_event.set()
 
     signal.signal(signal.SIGINT, signal_handler)
     signal.signal(signal.SIGTERM, signal_handler)
