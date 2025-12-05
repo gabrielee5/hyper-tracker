@@ -41,6 +41,9 @@ fetcher/data/*.db
 fetcher/data/*.db-journal
 data/
 
+# CSV Exports
+analyzer/exports/
+
 # Logs - All logs now in main logs/ folder
 fetcher/logs/*.log
 logs/

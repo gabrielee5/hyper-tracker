@@ -98,6 +98,11 @@ python main.py
 cd analyzer
 python main.py --mode continuous  # Continuous monitoring
 python main.py --mode once --limit 50  # One-time batch
+
+# Export database to CSV
+python export_to_csv.py  # Export all tables to ./exports
+python export_to_csv.py --table scored_traders  # Export specific table
+python export_to_csv.py --output-dir ./my_exports  # Custom output directory
 ```
 
 ---
@@ -376,6 +381,7 @@ hyper-tracker/
 │
 ├── analyzer/             # Phase 2: Statistical analysis
 │   ├── main.py
+│   ├── export_to_csv.py  # Database export utility
 │   ├── config/
 │   │   └── config.yaml
 │   ├── core/
@@ -390,6 +396,7 @@ hyper-tracker/
 │   │   └── app.py
 │   ├── data/
 │   │   └── analyzed_traders.db
+│   ├── exports/          # CSV export output
 │   └── logs/
 │
 ├── contrarian/           # Phase 3: Signal generation
