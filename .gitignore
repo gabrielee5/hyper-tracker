@@ -58,3 +58,4 @@ Thumbs.db
 htmlcov/
 phase4_simulator/simulator.log
 phase4_simulator/simulator.db
+services/.caffeinate.pid
