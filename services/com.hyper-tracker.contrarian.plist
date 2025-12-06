@@ -7,7 +7,7 @@
 
     <key>ProgramArguments</key>
     <array>
-        <string>/usr/bin/python3</string>
+        <string>/Users/gabrielefabietti/projects/hyper-tracker/venv/bin/python3</string>
         <string>/Users/gabrielefabietti/projects/hyper-tracker/contrarian/main.py</string>
     </array>
 
