@@ -192,8 +192,8 @@ class ContrarianSignalGenerator:
         Calculate confidence score for the signal (0.0 to 1.0).
 
         Higher confidence when:
-        1. More extreme positioning (80%+ vs 60%)
-        2. Larger sample size
+        1. More extreme positioning (far from 50/50)
+        2. Sufficient sample size (scales down if too small)
 
         Args:
             long_pct: Percentage long (0-100)
@@ -207,12 +207,12 @@ class ContrarianSignalGenerator:
         # How far from neutral (50/50)?
         imbalance = abs(long_pct - 50.0) / 50.0  # 0.0 at 50%, 1.0 at 0% or 100%
 
-        # 2. Sample size factor (0.0 to 1.0)
-        # Full confidence at 30+ traders, scale up from min_traders
-        sample_factor = min(1.0, total_traders / (self.min_traders_for_signal * 3))
+        # 2. Sample size multiplier (0.0 to 1.0)
+        # Penalize small samples, full confidence at 30+ traders
+        sample_multiplier = min(1.0, total_traders / (self.min_traders_for_signal * 3))
 
-        # Combine factors (weighted average)
-        confidence = (imbalance * 0.7) + (sample_factor * 0.3)
+        # Multiply factors: confidence scales with both imbalance AND sample size
+        confidence = imbalance * sample_multiplier
 
         return round(confidence, 3)
 
