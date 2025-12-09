@@ -134,6 +134,62 @@ class StopLossAnalyzer:
             self._rate_limit_count = 0
             logger.info("✓ Circuit breaker reset. Resuming requests...")
 
+    async def fetch_user_positions(self, address: str) -> List[Dict]:
+        """
+        Fetch open positions for a trader using clearinghouseState endpoint.
+
+        Args:
+            address: Trader's Ethereum address
+
+        Returns:
+            List of position dictionaries from assetPositions
+        """
+        # Wait if circuit breaker is active
+        while self._circuit_breaker_active:
+            await asyncio.sleep(1)
+
+        payload = {
+            "type": "clearinghouseState",
+            "user": address
+        }
+
+        try:
+            async with self.rate_limiter:
+                session = await self._get_session()
+                async with session.post(
+                    f"{self.base_url}/info",
+                    json=payload,
+                    headers={"Content-Type": "application/json"}
+                ) as response:
+                    if response.status == 429:
+                        self._rate_limit_count += 1
+                        logger.debug(f"Rate limit hit for {address[:10]}")
+                        await self._activate_circuit_breaker()
+                        return await self.fetch_user_positions(address)
+
+                    response.raise_for_status()
+                    data = await response.json()
+
+                    if isinstance(data, dict):
+                        if 'error' in data:
+                            logger.warning(f"API error for {address[:10]}: {data['error']}")
+                            return []
+                        # Extract assetPositions from response
+                        return data.get('assetPositions', [])
+
+                    self._rate_limit_count = 0
+                    return []
+
+        except aiohttp.ClientResponseError as e:
+            if e.status == 429:
+                await self._activate_circuit_breaker()
+                return await self.fetch_user_positions(address)
+            logger.warning(f"Failed to fetch positions for {address[:10]}: {e}")
+            return []
+        except Exception as e:
+            logger.warning(f"Failed to fetch positions for {address[:10]}: {e}")
+            return []
+
     async def fetch_open_orders(self, address: str) -> List[Dict]:
         """
         Fetch open orders for a trader using frontendOpenOrders endpoint.
@@ -192,29 +248,31 @@ class StopLossAnalyzer:
             logger.warning(f"Failed to fetch orders for {address[:10]}: {e}")
             return []
 
-    async def batch_fetch_orders(
+    async def batch_fetch_orders_and_positions(
         self,
         addresses: List[str],
         concurrency: int = 5
-    ) -> Dict[str, List[Dict]]:
+    ) -> Dict[str, Dict]:
         """
-        Fetch orders for multiple addresses concurrently.
+        Fetch orders and positions for multiple addresses concurrently.
 
         Args:
             addresses: List of trader addresses
             concurrency: Max concurrent requests
 
         Returns:
-            Dict mapping address -> list of orders
+            Dict mapping address -> {"orders": [...], "positions": [...]}
         """
         semaphore = asyncio.Semaphore(concurrency)
 
         async def fetch_with_semaphore(addr: str):
             async with semaphore:
+                # Fetch both orders and positions
                 orders = await self.fetch_open_orders(addr)
-                return addr, orders
+                positions = await self.fetch_user_positions(addr)
+                return addr, {"orders": orders, "positions": positions}
 
-        logger.info(f"Fetching orders for {len(addresses)} traders...")
+        logger.info(f"Fetching orders and positions for {len(addresses)} traders...")
 
         tasks = [fetch_with_semaphore(addr) for addr in addresses]
         results = await asyncio.gather(*tasks, return_exceptions=False)
@@ -224,18 +282,53 @@ class StopLossAnalyzer:
     def filter_stop_losses(
         self,
         orders: List[Dict],
-        target_coin: str
+        positions: List[Dict],
+        target_coin: str,
+        current_price: float
     ) -> List[Dict]:
         """
         Filter orders for stop losses on the target coin.
 
+        Distinguishes stop losses from take profits by analyzing position direction
+        and trigger price relative to current market price.
+
+        Logic:
+        - Long position + trigger below current price = stop loss
+        - Short position + trigger above current price = stop loss
+        - Long position + trigger above current price = take profit (excluded)
+        - Short position + trigger below current price = take profit (excluded)
+
         Args:
             orders: List of order dictionaries
+            positions: List of position dictionaries from clearinghouseState
             target_coin: Coin symbol to filter (e.g., "BTC", "ETH")
+            current_price: Current market price of the coin
 
         Returns:
             List of stop loss orders for the target coin
         """
+        # Find the position for this coin
+        position = None
+        for pos in positions:
+            if pos.get('position', {}).get('coin') == target_coin:
+                position = pos.get('position', {})
+                break
+
+        # If no position, we can't determine stop loss vs take profit
+        if not position:
+            return []
+
+        # Get position size (positive = long, negative = short)
+        try:
+            position_size = float(position.get('szi', 0))
+        except (ValueError, TypeError):
+            return []
+
+        # No position means no stop losses
+        if position_size == 0:
+            return []
+
+        is_long = position_size > 0
         stop_losses = []
 
         for order in orders:
@@ -247,10 +340,25 @@ class StopLossAnalyzer:
             if not order.get('isTrigger', False):
                 continue
 
-            # We could further filter by checking if it's reduce-only
-            # Stop losses typically have reduceOnly = True
-            if order.get('reduceOnly', False):
-                stop_losses.append(order)
+            # Must be reduce-only
+            if not order.get('reduceOnly', False):
+                continue
+
+            # Get trigger price
+            try:
+                trigger_price = float(order.get('triggerPx', 0))
+            except (ValueError, TypeError):
+                continue
+
+            # Apply logic to distinguish stop loss from take profit
+            if is_long:
+                # Long position: stop loss is below current price
+                if trigger_price < current_price:
+                    stop_losses.append(order)
+            else:
+                # Short position: stop loss is above current price
+                if trigger_price > current_price:
+                    stop_losses.append(order)
 
         return stop_losses
 
@@ -430,8 +538,18 @@ async def main():
         addresses = [trader['address'] for trader in bad_traders]
         logger.info(f"Found {len(addresses)} bad traders")
 
-        # Fetch open orders
-        orders_by_address = await analyzer.batch_fetch_orders(
+        # Fetch current price first (needed for stop loss filtering)
+        logger.info(f"Fetching current price for {target_coin}...")
+        current_price = await analyzer.fetch_current_price(target_coin)
+
+        if not current_price:
+            logger.error("Could not fetch current price - required for stop loss detection")
+            return
+
+        logger.info(f"Current {target_coin} price: ${current_price:,.2f}")
+
+        # Fetch open orders and positions
+        data_by_address = await analyzer.batch_fetch_orders_and_positions(
             addresses,
             concurrency=5
         )
@@ -439,27 +557,31 @@ async def main():
         # Collect all stop losses for the target coin
         all_stop_losses = []
         traders_with_sl = 0
+        traders_with_positions = 0
 
-        for address, orders in orders_by_address.items():
-            if orders:
-                stop_losses = analyzer.filter_stop_losses(orders, target_coin)
+        for address, data in data_by_address.items():
+            orders = data.get('orders', [])
+            positions = data.get('positions', [])
+
+            if positions:
+                traders_with_positions += 1
+
+            if orders and positions:
+                stop_losses = analyzer.filter_stop_losses(
+                    orders,
+                    positions,
+                    target_coin,
+                    current_price
+                )
                 if stop_losses:
                     all_stop_losses.extend(stop_losses)
                     traders_with_sl += 1
 
+        logger.info(f"Found {traders_with_positions} traders with open positions")
         logger.info(
             f"Found {len(all_stop_losses)} stop loss orders from "
             f"{traders_with_sl} traders"
         )
-
-        # Fetch current price
-        logger.info(f"Fetching current price for {target_coin}...")
-        current_price = await analyzer.fetch_current_price(target_coin)
-
-        if current_price:
-            logger.info(f"Current {target_coin} price: ${current_price:,.2f}")
-        else:
-            logger.warning("Could not fetch current price")
 
         # Visualize distribution
         analyzer.visualize_distribution(all_stop_losses, target_coin, current_price)
