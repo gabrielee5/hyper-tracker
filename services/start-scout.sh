@@ -3,6 +3,42 @@
 
 set -e
 
+# Parse command line arguments
+MINUTE=0
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        --minute)
+            MINUTE="$2"
+            shift 2
+            ;;
+        -m)
+            MINUTE="$2"
+            shift 2
+            ;;
+        -h|--help)
+            echo "Usage: $0 [--minute MINUTE]"
+            echo ""
+            echo "Options:"
+            echo "  --minute, -m MINUTE   Minute of the hour to run fetcher (0-59, default: 0)"
+            echo "  -h, --help           Show this help message"
+            echo ""
+            echo "Example: $0 --minute 30    # Run fetcher at 30 minutes past each hour"
+            exit 0
+            ;;
+        *)
+            echo "Unknown option: $1"
+            echo "Use --help for usage information"
+            exit 1
+            ;;
+    esac
+done
+
+# Validate minute
+if ! [[ "$MINUTE" =~ ^[0-9]+$ ]] || [ "$MINUTE" -lt 0 ] || [ "$MINUTE" -gt 59 ]; then
+    echo "Error: Minute must be a number between 0 and 59"
+    exit 1
+fi
+
 # Get the project root directory (parent of services/)
 PROJECT_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 
@@ -14,7 +50,13 @@ chmod +x "$PROJECT_ROOT/services/run-fetcher.sh"
 
 # Copy plist files to LaunchAgents directory
 echo "Installing launch agents..."
-cp "$PROJECT_ROOT/services/com.hyper-tracker.fetcher.plist" ~/Library/LaunchAgents/
+echo "  - Fetcher will run at minute $MINUTE of each hour"
+
+# Copy and modify the fetcher plist with the specified minute
+sed "s/<integer>0<\/integer>/<integer>$MINUTE<\/integer>/" \
+    "$PROJECT_ROOT/services/com.hyper-tracker.fetcher.plist" > \
+    ~/Library/LaunchAgents/com.hyper-tracker.fetcher.plist
+
 cp "$PROJECT_ROOT/services/com.hyper-tracker.analyzer.plist" ~/Library/LaunchAgents/
 
 # Load and start services
@@ -36,7 +78,7 @@ echo ""
 echo "✓ Scout services started successfully!"
 echo ""
 echo "Scout services are now running in the background:"
-echo "  - Fetcher: Runs at the start of every hour for 15 minutes"
+echo "  - Fetcher: Runs at minute $MINUTE of every hour for 15 minutes"
 echo "  - Analyzer: Running continuously"
 echo ""
 echo "They will auto-restart if they crash and start on boot."

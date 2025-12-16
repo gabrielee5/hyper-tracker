@@ -17,5 +17,5 @@ echo "Waiting 3 seconds before starting services..."
 sleep 3
 echo ""
 
-# Start services
-"$SCRIPT_DIR/start-scout.sh"
+# Start services with all arguments passed through
+"$SCRIPT_DIR/start-scout.sh" "$@"
