@@ -271,14 +271,14 @@ class StatisticalAnalyzer:
     def _calculate_score(self, t_statistic: float, p_value: float,
                         monte_carlo_percentile: float) -> int:
         """
-        Calculate final score (0-100) combining statistical tests.
+        Calculate final score (0-100) based on Monte Carlo simulation.
 
-        The Monte Carlo percentile is the primary score, adjusted by
-        statistical significance from the t-test using symmetric adjustments.
+        The score is the Monte Carlo percentile, which indicates what percentage
+        of random traders performed worse than this trader.
 
         Args:
-            t_statistic: T-test statistic
-            p_value: P-value from t-test
+            t_statistic: T-test statistic (kept for reference, not used in score)
+            p_value: P-value from t-test (kept for reference, not used in score)
             monte_carlo_percentile: Percentile from Monte Carlo (0-100)
 
         Returns:
@@ -287,34 +287,11 @@ class StatisticalAnalyzer:
             - 50 indicates random performance
             - Higher scores indicate better than random performance
         """
-        # Start with Monte Carlo percentile as base score
-        base_score = monte_carlo_percentile
-
-        # Calculate distance from median (50)
-        distance_from_50 = base_score - 50
-
-        # Apply symmetric adjustments based on statistical significance
-        # Only amplify if the result is already notably different from random (|distance| > 10)
-        if abs(distance_from_50) > 10:
-            if p_value < 0.01:  # Highly significant (99% confidence)
-                # Amplify distance from 50 by 30%
-                adjusted_distance = distance_from_50 * 1.3
-            elif p_value < 0.05:  # Moderately significant (95% confidence)
-                # Amplify distance from 50 by 15%
-                adjusted_distance = distance_from_50 * 1.15
-            else:
-                # No amplification for non-significant results
-                adjusted_distance = distance_from_50
-        else:
-            # Don't amplify scores close to 50 (random performance)
-            # Even if statistically significant, they're practically random
-            adjusted_distance = distance_from_50
-
-        # Calculate final score
-        final_score = 50 + adjusted_distance
+        # Score is simply the Monte Carlo percentile
+        score = monte_carlo_percentile
 
         # Clip to valid range
-        score = max(0, min(100, final_score))
+        score = max(0, min(100, score))
 
         return int(round(score))
 
