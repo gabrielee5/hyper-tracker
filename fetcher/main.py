@@ -117,7 +117,7 @@ class HyperliquidTracker:
             logger.info("Starting Hyperliquid Tracker")
             logger.info(f"Network: {self.config.network}")
             logger.info(f"Database: {self.config.database_path}")
-            logger.info(f"Tracking role: {self.config.track_role}")
+            logger.info("Tracking: All addresses (both buyers and sellers)")
 
             # Connect to Hyperliquid
             self.connection.connect()

@@ -18,10 +18,13 @@ class AddressTracker:
 
         Args:
             batch_size: Number of addresses to accumulate before flushing
-            track_role: Which addresses to track - 'maker', 'taker', or 'both'
+            track_role: DEPRECATED - kept for compatibility, always tracks both addresses
+                       (taker/maker cannot be reliably determined from public trade data)
         """
         self.batch_size = batch_size
-        self.track_role = track_role
+        # Note: track_role parameter is ignored - we always track both addresses
+        # because the WebSocket 'trades' subscription doesn't include the 'crossed'
+        # field needed to distinguish taker from maker
         self.pending_addresses: deque = deque()
         self.seen_in_batch: Set[str] = set()
         self.lock = Lock()
@@ -38,7 +41,7 @@ class AddressTracker:
         Expected trade_data format:
         {
             "coin": "BTC",
-            "side": "A",  # "A" = ask (seller is taker), "B" = bid (buyer is taker)
+            "side": "A",  # "A" = ask/sell, "B" = bid/buy
             "px": "42000.50",
             "sz": "1.5",
             "hash": "0x...",
@@ -47,6 +50,10 @@ class AddressTracker:
             "users": ["0xbuyer...", "0xseller..."]  # [buyer, seller]
         }
 
+        Note: The 'side' field only indicates trade direction (buy/sell), not taker/maker.
+        The WebSocket 'trades' subscription does not include the 'crossed' field needed
+        to distinguish taker from maker. Therefore, we track both buyer and seller addresses.
+
         Args:
             trade_data: Trade data from WebSocket
         """
@@ -54,7 +61,6 @@ class AddressTracker:
             try:
                 # Extract data
                 coin = trade_data.get("coin")
-                side = trade_data.get("side")  # "A" or "B"
                 users = trade_data.get("users", [])
                 price = float(trade_data.get("px", 0))
                 size = float(trade_data.get("sz", 0))
@@ -67,38 +73,23 @@ class AddressTracker:
                 self.total_trades_processed += 1
                 self.trades_by_coin[coin] = self.trades_by_coin.get(coin, 0) + 1
 
-                # Determine which addresses to track based on role
+                # Track both buyer and seller addresses
                 # users = [buyer, seller]
-                # side "A" (Ask) = seller is taker, buyer is maker
-                # side "B" (Bid) = buyer is taker, seller is maker
-
-                addresses_to_track = []
-
                 if len(users) >= 2:
                     buyer = users[0]
                     seller = users[1]
+                    addresses_to_track = [buyer, seller]
 
-                    if self.track_role == "both":
-                        addresses_to_track = [buyer, seller]
-                    elif self.track_role == "taker":
-                        # Side "A" means seller is taker, Side "B" means buyer is taker
-                        taker = seller if side == "A" else buyer
-                        addresses_to_track = [taker]
-                    elif self.track_role == "maker":
-                        # Side "A" means buyer is maker, Side "B" means seller is maker
-                        maker = buyer if side == "A" else seller
-                        addresses_to_track = [maker]
-
-                # Process selected addresses
-                for address in addresses_to_track:
-                    if address and address not in self.seen_in_batch:
-                        self.pending_addresses.append({
-                            "address": address,
-                            "timestamp": timestamp,
-                            "volume": trade_value_usd / len(addresses_to_track),
-                        })
-                        self.seen_in_batch.add(address)
-                        self.total_addresses_found += 1
+                    # Process both addresses
+                    for address in addresses_to_track:
+                        if address and address not in self.seen_in_batch:
+                            self.pending_addresses.append({
+                                "address": address,
+                                "timestamp": timestamp,
+                                "volume": trade_value_usd / len(addresses_to_track),
+                            })
+                            self.seen_in_batch.add(address)
+                            self.total_addresses_found += 1
 
                 # Log periodically
                 if self.total_trades_processed % 100 == 0:

@@ -21,7 +21,7 @@ class Config(BaseModel):
     # Tracking Configuration
     track_all_coins: bool = Field(default=False)
     selected_coins: List[str] = Field(default_factory=list)
-    track_role: str = Field(default="both")  # 'maker', 'taker', or 'both'
+    track_role: str = Field(default="both")  # DEPRECATED: always tracks 'both' (public trade data lacks taker/maker info)
 
     # Database Configuration
     database_path: Path = Field(default=Path("../data/addresses.db"))
@@ -63,7 +63,8 @@ class Config(BaseModel):
         selected_coins = [coin.strip() for coin in selected_coins_str.split(",") if coin.strip()]
         track_role = os.getenv("TRACK_ROLE", "both").lower()
 
-        # Validate track_role
+        # Note: track_role is deprecated and ignored - always tracks both addresses
+        # Kept for backward compatibility only
         if track_role not in ["maker", "taker", "both"]:
             raise ValueError(f"Invalid TRACK_ROLE: {track_role}. Must be 'maker', 'taker', or 'both'")
 

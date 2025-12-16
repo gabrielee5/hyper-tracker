@@ -6,7 +6,7 @@
     "max_position_pct": 0.40
   },
   "strategy": {
-    "rebalance_interval_seconds": 900,
+    "rebalance_interval_seconds": 1800,
     "min_confidence_threshold": 0.50,
     "max_positions": 10,
     "min_trade_size_usd": 1000
@@ -26,11 +26,11 @@
   },
   "api": {
     "hyperliquid_rest": "https://api.hyperliquid.xyz",
-    "price_update_interval_seconds": 300
+    "price_update_interval_seconds": 1800
   },
   "dashboard": {
     "port": 5003,
-    "update_interval_seconds": 60,
+    "update_interval_seconds": 1800,
     "timezone": "UTC"
   },
   "logging": {
