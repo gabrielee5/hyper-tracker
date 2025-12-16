@@ -631,8 +631,12 @@ DASHBOARD_HTML = """
             const statsGrid = document.getElementById('stats-grid');
             statsGrid.innerHTML = `
                 <div class="stat-card">
+                    <div class="stat-label">Total Processed</div>
+                    <div class="stat-value">${formatNumber(stats.total_processed || 0)}</div>
+                </div>
+                <div class="stat-card">
                     <div class="stat-label">Total Analyzed</div>
-                    <div class="stat-value">${formatNumber(stats.total_analyzed)}</div>
+                    <div class="stat-value success">${formatNumber(stats.total_analyzed)}</div>
                 </div>
                 <div class="stat-card">
                     <div class="stat-label">Worst Traders</div>
@@ -640,7 +644,7 @@ DASHBOARD_HTML = """
                 </div>
                 <div class="stat-card">
                     <div class="stat-label">Analyzed Today</div>
-                    <div class="stat-value success">${formatNumber(stats.analyzed_last_24h)}</div>
+                    <div class="stat-value">${formatNumber(stats.analyzed_last_24h)}</div>
                 </div>
                 <div class="stat-card">
                     <div class="stat-label">Average Score</div>

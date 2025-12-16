@@ -346,6 +346,12 @@ class AnalyzerDatabase:
             ) as cursor:
                 stats['total_analyzed'] = (await cursor.fetchone())[0]
 
+            # Total addresses processed (including filtered/errored)
+            async with db.execute(
+                "SELECT COUNT(DISTINCT address) FROM analysis_log"
+            ) as cursor:
+                stats['total_processed'] = (await cursor.fetchone())[0]
+
             # Bad traders count
             async with db.execute(
                 "SELECT COUNT(*) FROM scored_traders WHERE is_statistically_bad = 1"
