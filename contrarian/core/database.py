@@ -72,7 +72,7 @@ class Phase2Reader:
                 sharpe_ratio,
                 account_balance
             FROM scored_traders
-            WHERE score <= ? AND is_statistically_bad = 1
+            WHERE score <= ?
             ORDER BY score ASC, total_pnl ASC
         """
 
@@ -97,7 +97,7 @@ class Phase2Reader:
         """
         query = """
             SELECT COUNT(*) FROM scored_traders
-            WHERE score <= ? AND is_statistically_bad = 1
+            WHERE score <= ?
         """
 
         async with self._get_connection() as db:
