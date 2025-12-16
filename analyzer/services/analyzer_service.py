@@ -138,24 +138,14 @@ class AnalyzerService:
                 )
                 return False
 
-            # Perform statistical analysis
-            metrics = self.analyzer.analyze_trader(fills)
-
-            if metrics is None:
-                self.stats['insufficient_data'] += 1
-                await self.database.log_analysis(
-                    address=address,
-                    status='insufficient_data',
-                    trades_fetched=len(fills)
-                )
-                return False
-
             # Check if first trade is at least min_first_trade_age_days old
-            if metrics.first_trade_time is not None:
+            # Do this BEFORE statistical analysis to save computation
+            first_trade_time = self._extract_first_trade_time(fills)
+            if first_trade_time is not None:
                 current_time_ms = int(datetime.utcnow().timestamp() * 1000)
                 min_age_days = self.config.analysis.min_first_trade_age_days
                 min_age_ms = min_age_days * 24 * 60 * 60 * 1000  # Convert days to milliseconds
-                first_trade_age_ms = current_time_ms - metrics.first_trade_time
+                first_trade_age_ms = current_time_ms - first_trade_time
 
                 if first_trade_age_ms < min_age_ms:
                     days_old = first_trade_age_ms / (24 * 60 * 60 * 1000)
@@ -171,7 +161,9 @@ class AnalyzerService:
                     )
                     return False
 
-            # Fetch account balance
+            # Fetch account balance BEFORE statistical analysis to save computation
+            # Do this early to filter out accounts with insufficient balance
+            account_balance = None
             try:
                 user_state = await self.api_client.fetch_user_state(address)
                 logger.debug(f"User state keys: {list(user_state.keys()) if isinstance(user_state, dict) else 'Not a dict'}")
@@ -180,8 +172,8 @@ class AnalyzerService:
                 if isinstance(user_state, dict) and 'marginSummary' in user_state:
                     account_value = user_state['marginSummary'].get('accountValue')
                     if account_value is not None:
-                        metrics.account_balance = float(account_value)
-                        logger.info(f"Fetched balance for {self._shorten_address(address)}: ${metrics.account_balance:,.2f}")
+                        account_balance = float(account_value)
+                        logger.info(f"Fetched balance for {self._shorten_address(address)}: ${account_balance:,.2f}")
                     else:
                         logger.debug(f"accountValue is None in marginSummary for {self._shorten_address(address)}")
                 else:
@@ -190,12 +182,12 @@ class AnalyzerService:
                 logger.warning(f"Failed to fetch account balance for {self._shorten_address(address)}: {e}")
                 # Continue without balance - it's optional
 
-            # Check minimum account balance
-            if metrics.account_balance is not None:
-                if metrics.account_balance < self.config.analysis.min_account_balance:
+            # Check minimum account balance BEFORE statistical analysis
+            if account_balance is not None:
+                if account_balance < self.config.analysis.min_account_balance:
                     logger.info(
                         f"Insufficient account balance for {self._shorten_address(address)}: "
-                        f"${metrics.account_balance:,.2f} (need ${self.config.analysis.min_account_balance:,.2f})"
+                        f"${account_balance:,.2f} (need ${self.config.analysis.min_account_balance:,.2f})"
                     )
                     self.stats['insufficient_data'] += 1
                     await self.database.log_analysis(
@@ -204,6 +196,21 @@ class AnalyzerService:
                         trades_fetched=len(fills)
                     )
                     return False
+
+            # NOW perform statistical analysis (only if all filters passed)
+            metrics = self.analyzer.analyze_trader(fills)
+
+            if metrics is None:
+                self.stats['insufficient_data'] += 1
+                await self.database.log_analysis(
+                    address=address,
+                    status='insufficient_data',
+                    trades_fetched=len(fills)
+                )
+                return False
+
+            # Attach account balance to metrics
+            metrics.account_balance = account_balance
 
             # Save to database
             await self.database.save_trader_analysis(address, metrics)
@@ -462,6 +469,31 @@ class AnalyzerService:
         if len(address) > 10:
             return f"{address[:6]}...{address[-4:]}"
         return address
+
+    def _extract_first_trade_time(self, fills: List[dict]) -> Optional[int]:
+        """
+        Extract the timestamp of the first (oldest) trade from fills.
+
+        Args:
+            fills: List of fill dictionaries
+
+        Returns:
+            Timestamp in milliseconds of the first trade, or None if no valid timestamps
+        """
+        if not fills:
+            return None
+
+        oldest_time = None
+        for fill in fills:
+            if 'time' in fill and fill['time'] is not None:
+                try:
+                    time_ms = int(fill['time'])
+                    if oldest_time is None or time_ms < oldest_time:
+                        oldest_time = time_ms
+                except (ValueError, TypeError):
+                    continue
+
+        return oldest_time
 
 
 async def main():
