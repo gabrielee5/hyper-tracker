@@ -190,6 +190,21 @@ class AnalyzerService:
                 logger.warning(f"Failed to fetch account balance for {self._shorten_address(address)}: {e}")
                 # Continue without balance - it's optional
 
+            # Check minimum account balance
+            if metrics.account_balance is not None:
+                if metrics.account_balance < self.config.analysis.min_account_balance:
+                    logger.info(
+                        f"Insufficient account balance for {self._shorten_address(address)}: "
+                        f"${metrics.account_balance:,.2f} (need ${self.config.analysis.min_account_balance:,.2f})"
+                    )
+                    self.stats['insufficient_data'] += 1
+                    await self.database.log_analysis(
+                        address=address,
+                        status='insufficient_balance',
+                        trades_fetched=len(fills)
+                    )
+                    return False
+
             # Save to database
             await self.database.save_trader_analysis(address, metrics)
 

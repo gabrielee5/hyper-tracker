@@ -34,6 +34,7 @@ class AnalysisConfig:
     monte_carlo_iterations: int
     reanalysis_interval_days: int
     min_first_trade_age_days: int = 5  # Minimum age of first trade in days
+    min_account_balance: float = 500  # Minimum account balance in USD
 
 
 @dataclass

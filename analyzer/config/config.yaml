@@ -14,7 +14,8 @@ analysis:
   alert_score_threshold: 5
   monte_carlo_iterations: 1000
   reanalysis_interval_days: 7
-  min_first_trade_age_days: 5  # Minimum age of trader's first trade in days
+  min_first_trade_age_days: 10  # Minimum age of trader's first trade in days
+  min_account_balance: 500  # Minimum account balance in USD
 
 database:
   phase1_db_path: "../data/addresses.db"  # READ-ONLY - main data folder
