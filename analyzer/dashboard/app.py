@@ -635,7 +635,7 @@ DASHBOARD_HTML = """
                     <div class="stat-value">${formatNumber(stats.total_analyzed)}</div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-label">Bad Traders</div>
+                    <div class="stat-label">Worst Traders</div>
                     <div class="stat-value danger">${formatNumber(stats.bad_traders_count)}</div>
                 </div>
                 <div class="stat-card">
