@@ -53,8 +53,8 @@ cd services/
 - **Web Dashboard:** http://127.0.0.1:5000 (when running)
 
 ### 2. Simulator Service
-- **Script:** `../simulator/main.py`
-- **Purpose:** Paper trading simulator that executes trades based on signals
+- **Script:** `../simulator/main_three_asset.py`
+- **Purpose:** Three-asset paper trading simulator (BTC, SOL, ETH only) that executes trades based on signals
 - **Web Dashboard:** http://localhost:8050 (when running)
 
 ## Logs
@@ -171,7 +171,7 @@ rm ~/Library/LaunchAgents/com.hyper-tracker.simulator.plist
 2. Test scripts manually first:
    ```bash
    cd ../contrarian && python3 main.py
-   cd ../simulator && python3 main.py
+   cd ../simulator && python3 main_three_asset.py
    ```
 3. Check that all dependencies are installed
 4. Verify database files exist and are accessible

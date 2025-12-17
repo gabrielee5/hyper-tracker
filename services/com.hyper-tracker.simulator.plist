@@ -8,7 +8,7 @@
     <key>ProgramArguments</key>
     <array>
         <string>/Users/gabrielefabietti/projects/hyper-tracker/venv/bin/python3</string>
-        <string>/Users/gabrielefabietti/projects/hyper-tracker/simulator/main.py</string>
+        <string>/Users/gabrielefabietti/projects/hyper-tracker/simulator/main_three_asset.py</string>
     </array>
 
     <key>WorkingDirectory</key>
