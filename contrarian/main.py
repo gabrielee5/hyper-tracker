@@ -211,11 +211,15 @@ class ContrarianEngine:
                         signal['total_traders_change'] = signal['bad_traders_total'] - prev_signal['bad_traders_total']
                         signal['long_count_change'] = signal['long_count'] - prev_signal['long_count']
                         signal['short_count_change'] = signal['short_count'] - prev_signal['short_count']
+
+                        # Calculate change in confidence score
+                        signal['confidence_score_change'] = signal['confidence_score'] - prev_signal['confidence_score']
                     else:
                         # No previous data, set changes to 0
                         signal['total_traders_change'] = 0
                         signal['long_count_change'] = 0
                         signal['short_count_change'] = 0
+                        signal['confidence_score_change'] = 0
 
             # 7. Save signals to database
             if signals:

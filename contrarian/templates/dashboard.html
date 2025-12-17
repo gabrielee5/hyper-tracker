@@ -355,6 +355,18 @@
             }
         }
 
+        function formatConfidenceChange(change) {
+            if (!change || change === 0) {
+                return '<span style="color: #999; font-size: 12px;">(±0pp)</span>';
+            }
+            const changePercent = (change * 100).toFixed(1);
+            if (change > 0) {
+                return `<span style="color: #28a745; font-size: 12px;">(+${changePercent}pp)</span>`;
+            } else {
+                return `<span style="color: #dc3545; font-size: 12px;">(${changePercent}pp)</span>`;
+            }
+        }
+
         function createPositionBar(longPct, shortPct, longVal, shortVal, longChange = 0, shortChange = 0, isUsd = false) {
             const longLabel = isUsd ? `$${(longVal/1000).toFixed(0)}K` : Math.round(longVal);
             const shortLabel = isUsd ? `$${(shortVal/1000).toFixed(0)}K` : Math.round(shortVal);
@@ -411,6 +423,7 @@
                 const totalChange = signal.total_traders_change || 0;
                 const longChange = signal.long_count_change || 0;
                 const shortChange = signal.short_count_change || 0;
+                const confidenceChange = signal.confidence_score_change || 0;
 
                 html += `
                     <tr>
@@ -420,7 +433,7 @@
                         </td>
                         <td>${signal.signal_strength}</td>
                         <td class="right-align ${getConfidenceClass(signal.confidence_score)}">
-                            ${formatConfidence(signal.confidence_score)}
+                            ${formatConfidence(signal.confidence_score)}<br>${formatConfidenceChange(confidenceChange)}
                         </td>
                         <td class="right-align">
                             ${signal.bad_traders_total} ${formatChange(totalChange)}
