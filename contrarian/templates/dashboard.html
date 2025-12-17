@@ -357,13 +357,13 @@
 
         function formatConfidenceChange(change) {
             if (!change || change === 0) {
-                return '<span style="color: #999; font-size: 12px;">(±0pp)</span>';
+                return '<span style="color: #999; margin-left: 4px;">(±0%)</span>';
             }
-            const changePercent = (change * 100).toFixed(1);
+            const changePercent = (change * 100).toFixed(0);
             if (change > 0) {
-                return `<span style="color: #28a745; font-size: 12px;">(+${changePercent}pp)</span>`;
+                return `<span style="color: #28a745; margin-left: 4px;">(+${changePercent}%)</span>`;
             } else {
-                return `<span style="color: #dc3545; font-size: 12px;">(${changePercent}pp)</span>`;
+                return `<span style="color: #dc3545; margin-left: 4px;">(${changePercent}%)</span>`;
             }
         }
 
@@ -433,7 +433,7 @@
                         </td>
                         <td>${signal.signal_strength}</td>
                         <td class="right-align ${getConfidenceClass(signal.confidence_score)}">
-                            ${formatConfidence(signal.confidence_score)}<br>${formatConfidenceChange(confidenceChange)}
+                            ${formatConfidence(signal.confidence_score)} ${formatConfidenceChange(confidenceChange)}
                         </td>
                         <td class="right-align">
                             ${signal.bad_traders_total} ${formatChange(totalChange)}
