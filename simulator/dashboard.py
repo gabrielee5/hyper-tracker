@@ -84,6 +84,15 @@ def api_portfolio():
             'metrics': metrics
         }
 
+        # Add cash tracking if portfolio supports it (three-asset strategy)
+        if hasattr(simulator.portfolio, 'get_cash_balance'):
+            cash_balance = simulator.portfolio.get_cash_balance()
+            positions_value = simulator.portfolio.get_positions_value()
+            data['cash_balance'] = cash_balance
+            data['cash_balance_pct'] = (cash_balance / portfolio_value * 100) if portfolio_value > 0 else 0
+            data['positions_value'] = positions_value
+            data['positions_value_pct'] = (positions_value / portfolio_value * 100) if portfolio_value > 0 else 0
+
         return jsonify(data)
 
     except Exception as e:

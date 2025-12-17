@@ -199,6 +199,14 @@
                     <span class="metric-value" id="numPositions">0</span>
                 </div>
                 <div class="metric">
+                    <span class="metric-label">Positions Value</span>
+                    <span class="metric-value" id="positionsValue">$0.00</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Cash Balance</span>
+                    <span class="metric-value" id="cashBalance">$0.00</span>
+                </div>
+                <div class="metric">
                     <span class="metric-label">Total Trades</span>
                     <span class="metric-value" id="totalTrades">0</span>
                 </div>
@@ -269,6 +277,9 @@
         let equityChart = null;
         let allocationChart = null;
 
+        // Global portfolio data for cash tracking
+        let portfolioData = null;
+
         // Format currency
         function formatCurrency(value) {
             return new Intl.NumberFormat('en-US', {
@@ -286,6 +297,9 @@
 
         // Update portfolio summary
         function updatePortfolio(data) {
+            // Store globally for use in allocation chart
+            portfolioData = data;
+
             document.getElementById('portfolioValue').textContent = formatCurrency(data.current_value);
             document.getElementById('startingCapital').textContent = formatCurrency(data.starting_capital);
 
@@ -300,6 +314,18 @@
             document.getElementById('numPositions').textContent = data.num_positions;
             document.getElementById('totalTrades').textContent = data.total_trades;
             document.getElementById('totalFees').textContent = formatCurrency(data.total_fees_paid);
+
+            // Cash tracking (if available - three-asset strategy)
+            if (data.cash_balance !== undefined) {
+                document.getElementById('cashBalance').textContent =
+                    formatCurrency(data.cash_balance) + ` (${data.cash_balance_pct.toFixed(1)}%)`;
+                document.getElementById('positionsValue').textContent =
+                    formatCurrency(data.positions_value) + ` (${data.positions_value_pct.toFixed(1)}%)`;
+            } else {
+                // Hide cash fields for default strategy
+                document.getElementById('cashBalance').textContent = 'N/A';
+                document.getElementById('positionsValue').textContent = 'N/A';
+            }
 
             // Performance metrics
             if (data.metrics) {
@@ -400,14 +426,23 @@
         function updateAllocationChart(positions) {
             const ctx = document.getElementById('allocationChart').getContext('2d');
 
-            const colors = positions.map(p =>
+            let labels = positions.map(p => `${p.pair} ${p.direction}`);
+            let data = positions.map(p => p.current_size_usd);
+            let colors = positions.map(p =>
                 p.direction === 'LONG' ? 'rgba(76, 175, 80, 0.8)' : 'rgba(244, 67, 54, 0.8)'
             );
 
+            // Add cash to allocation chart if available (three-asset strategy)
+            if (portfolioData && portfolioData.cash_balance !== undefined && portfolioData.cash_balance > 0) {
+                labels.push('Cash');
+                data.push(portfolioData.cash_balance);
+                colors.push('rgba(255, 193, 7, 0.8)'); // Amber/gold color for cash
+            }
+
             // Update existing chart data instead of recreating it
             if (allocationChart) {
-                allocationChart.data.labels = positions.map(p => `${p.pair} ${p.direction}`);
-                allocationChart.data.datasets[0].data = positions.map(p => p.current_size_usd);
+                allocationChart.data.labels = labels;
+                allocationChart.data.datasets[0].data = data;
                 allocationChart.data.datasets[0].backgroundColor = colors;
                 allocationChart.update('none'); // 'none' mode disables animations
             } else {
@@ -415,9 +450,9 @@
                 allocationChart = new Chart(ctx, {
                     type: 'pie',
                     data: {
-                        labels: positions.map(p => `${p.pair} ${p.direction}`),
+                        labels: labels,
                         datasets: [{
-                            data: positions.map(p => p.current_size_usd),
+                            data: data,
                             backgroundColor: colors,
                             borderColor: '#1a1f3a',
                             borderWidth: 2
