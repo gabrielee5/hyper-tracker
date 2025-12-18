@@ -2,6 +2,8 @@
 
 Monitor top-performing traders' positions and generate trading signals by following their winning strategies.
 
+IMPORTANT: the folder is a copy of 'contrarian' and then it has been transformed to reflect the bias of good traders. In doing so some things may have not been updated to reflect the change. Double check crucial functions!
+
 ## Overview
 
 This system identifies traders with consistently excellent performance (from Phase 2 analysis) and generates **follower trading signals** by taking the same side of their positions.
