@@ -1,0 +1,28 @@
+{
+  "good_trader_score_threshold": 90,
+  "min_traders_for_signal": 10,
+  "signal_thresholds": {
+    "strong": 0.70,
+    "moderate": 0.50
+  },
+  "update_interval_seconds": 1800,
+  "api": {
+    "base_url": "https://api.hyperliquid.xyz",
+    "rate_limit_calls": 15,
+    "rate_limit_period": 1.0,
+    "timeout": 10,
+    "max_retries": 3,
+    "concurrency_limit": 10
+  },
+  "database": {
+    "phase2_path": "../data/analyzed_traders.db",
+    "follower_path": "../data/follower_signals.db"
+  },
+  "dashboard": {
+    "refresh_rate": 5,
+    "show_size_weighted": true,
+    "top_signals_limit": 15,
+    "enable_colors": true,
+    "priority_coins": ["BTC", "ETH", "SOL"]
+  }
+}
