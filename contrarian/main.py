@@ -101,7 +101,8 @@ class ContrarianEngine:
         self.web_dashboard = None
         if self.enable_web:
             self.web_dashboard = WebDashboard(
-                priority_coins=self.config.dashboard.priority_coins
+                priority_coins=self.config.dashboard.priority_coins,
+                contrarian_db=self.contrarian_db
             )
 
         # State

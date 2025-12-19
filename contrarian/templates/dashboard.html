@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Contrarian Signals Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -268,6 +269,100 @@
             font-weight: bold;
             margin-left: 8px;
         }
+
+        /* Modal styles */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 12px;
+            padding: 32px;
+            max-width: 900px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            position: relative;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 16px;
+        }
+
+        .modal-title {
+            font-size: 24px;
+            color: #667eea;
+            font-weight: bold;
+        }
+
+        .modal-close {
+            background: transparent;
+            border: none;
+            font-size: 28px;
+            color: #999;
+            cursor: pointer;
+            padding: 0;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            transition: all 0.2s;
+        }
+
+        .modal-close:hover {
+            background: #f0f0f0;
+            color: #333;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 400px;
+            margin-top: 20px;
+        }
+
+        .coin-name-clickable {
+            cursor: pointer;
+            transition: color 0.2s;
+        }
+
+        .coin-name-clickable:hover {
+            color: #667eea;
+            text-decoration: underline;
+        }
+
+        .modal-loading {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+
+        .modal-error {
+            text-align: center;
+            padding: 40px;
+            color: #dc3545;
+        }
     </style>
 </head>
 <body>
@@ -305,6 +400,19 @@
 
             <div id="signals-content">
                 <div class="loading">Loading signals...</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal for confidence history chart -->
+    <div id="confidenceModal" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title" id="modalCoinName">Confidence Score History</h2>
+                <button class="modal-close" onclick="closeModal()">&times;</button>
+            </div>
+            <div id="modalChartContent">
+                <div class="modal-loading">Loading chart...</div>
             </div>
         </div>
     </div>
@@ -427,7 +535,7 @@
 
                 html += `
                     <tr>
-                        <td class="coin-name">${signal.coin}${priorityBadge}</td>
+                        <td><span class="coin-name coin-name-clickable" onclick="showConfidenceHistory('${signal.coin}')">${signal.coin}</span>${priorityBadge}</td>
                         <td class="${getSignalClass(signal.signal_direction, signal.signal_strength)}">
                             ${formatSignal(signal.signal_direction, signal.signal_strength)}
                         </td>
@@ -500,6 +608,153 @@
 
         // Auto-refresh every 5 seconds
         setInterval(loadSignals, 5000);
+
+        // Modal and chart functionality
+        let confidenceChart = null;
+
+        function closeModal() {
+            const modal = document.getElementById('confidenceModal');
+            modal.classList.remove('active');
+
+            // Destroy existing chart
+            if (confidenceChart) {
+                confidenceChart.destroy();
+                confidenceChart = null;
+            }
+        }
+
+        // Close modal when clicking outside
+        document.getElementById('confidenceModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeModal();
+            }
+        });
+
+        // Close modal with ESC key
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                closeModal();
+            }
+        });
+
+        async function showConfidenceHistory(coin) {
+            const modal = document.getElementById('confidenceModal');
+            const modalTitle = document.getElementById('modalCoinName');
+            const chartContent = document.getElementById('modalChartContent');
+
+            // Update modal title
+            modalTitle.textContent = `${coin} - Confidence Score History`;
+
+            // Show modal with loading state
+            chartContent.innerHTML = '<div class="modal-loading">Loading chart...</div>';
+            modal.classList.add('active');
+
+            try {
+                // Fetch confidence history
+                const response = await fetch(`/api/confidence-history/${coin}`);
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.error || 'Failed to fetch data');
+                }
+
+                if (!data.history || data.history.length === 0) {
+                    chartContent.innerHTML = '<div class="modal-error">No historical data available for this asset yet.</div>';
+                    return;
+                }
+
+                // Prepare chart data
+                const timestamps = data.history.map(item => {
+                    const date = new Date(item.timestamp);
+                    return date.toLocaleString('en-US', {
+                        month: 'short',
+                        day: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                    });
+                });
+
+                const confidenceScores = data.history.map(item => item.confidence_score * 100);
+
+                // Create chart container
+                chartContent.innerHTML = '<div class="chart-container"><canvas id="confidenceChart"></canvas></div>';
+
+                // Destroy existing chart if any
+                if (confidenceChart) {
+                    confidenceChart.destroy();
+                }
+
+                // Create new chart
+                const ctx = document.getElementById('confidenceChart').getContext('2d');
+                confidenceChart = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: timestamps,
+                        datasets: [{
+                            label: 'Confidence Score (%)',
+                            data: confidenceScores,
+                            borderColor: '#667eea',
+                            backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                            borderWidth: 2,
+                            fill: true,
+                            tension: 0.4,
+                            pointRadius: 4,
+                            pointHoverRadius: 6,
+                            pointBackgroundColor: '#667eea',
+                            pointBorderColor: '#fff',
+                            pointBorderWidth: 2
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                display: true,
+                                position: 'top',
+                            },
+                            title: {
+                                display: false
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        return 'Confidence: ' + context.parsed.y.toFixed(1) + '%';
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                max: 100,
+                                ticks: {
+                                    callback: function(value) {
+                                        return value + '%';
+                                    }
+                                },
+                                grid: {
+                                    color: 'rgba(0, 0, 0, 0.05)'
+                                }
+                            },
+                            x: {
+                                grid: {
+                                    display: false
+                                },
+                                ticks: {
+                                    maxRotation: 45,
+                                    minRotation: 45
+                                }
+                            }
+                        }
+                    }
+                });
+
+            } catch (error) {
+                console.error('Error loading confidence history:', error);
+                chartContent.innerHTML = `<div class="modal-error">Error loading chart: ${error.message}</div>`;
+            }
+        }
     </script>
 </body>
 </html>

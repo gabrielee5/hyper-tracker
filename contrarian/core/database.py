@@ -425,6 +425,40 @@ class ContrarianDatabase:
 
         logger.info(f"Cleaned up {deleted} old position snapshots")
 
+    async def get_confidence_history(
+        self,
+        coin: str,
+        limit: int = 100
+    ) -> List[Dict]:
+        """
+        Get historical confidence scores for a specific coin.
+
+        Args:
+            coin: Coin symbol to query
+            limit: Maximum number of data points to return
+
+        Returns:
+            List of dictionaries with timestamp and confidence_score
+        """
+        query = """
+            SELECT timestamp, confidence_score
+            FROM contrarian_signals
+            WHERE coin = ?
+            ORDER BY timestamp ASC
+            LIMIT ?
+        """
+
+        async with self._get_connection() as db:
+            async with db.execute(query, (coin, limit)) as cursor:
+                rows = await cursor.fetchall()
+                return [
+                    {
+                        'timestamp': row[0],
+                        'confidence_score': row[1]
+                    }
+                    for row in rows
+                ]
+
     def _shorten_address(self, address: str) -> str:
         """Shorten address for logging."""
         if len(address) > 10:

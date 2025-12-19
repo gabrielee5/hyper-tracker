@@ -30,7 +30,8 @@ class WebDashboard:
         self,
         host: str = '127.0.0.1',
         port: int = 5002,
-        priority_coins: List[str] = None
+        priority_coins: List[str] = None,
+        contrarian_db = None
     ):
         """
         Initialize web dashboard.
@@ -39,10 +40,12 @@ class WebDashboard:
             host: Host address to bind to
             port: Port to listen on
             priority_coins: List of coin symbols to display first
+            contrarian_db: ContrarianDatabase instance for historical data
         """
         self.host = host
         self.port = port
         self.priority_coins = priority_coins or []
+        self.contrarian_db = contrarian_db
 
         # State
         self.signals = []
@@ -87,6 +90,29 @@ class WebDashboard:
                 'status': 'ok',
                 'timestamp': datetime.now().isoformat()
             })
+
+        @self.app.route('/api/confidence-history/<coin>')
+        def get_confidence_history(coin):
+            """Get historical confidence scores for a specific coin."""
+            if not self.contrarian_db:
+                return jsonify({'error': 'Database not available'}), 500
+
+            try:
+                # Run async function in event loop
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+                history = loop.run_until_complete(
+                    self.contrarian_db.get_confidence_history(coin, limit=100)
+                )
+                loop.close()
+
+                return jsonify({
+                    'coin': coin,
+                    'history': history
+                })
+            except Exception as e:
+                logger.error(f"Error fetching confidence history for {coin}: {e}")
+                return jsonify({'error': str(e)}), 500
 
     def _sort_signals_with_priority(self, signals: List[Dict]) -> List[Dict]:
         """
