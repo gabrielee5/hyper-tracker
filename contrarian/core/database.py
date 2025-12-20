@@ -444,7 +444,7 @@ class ContrarianDatabase:
             SELECT timestamp, confidence_score
             FROM contrarian_signals
             WHERE coin = ?
-            ORDER BY timestamp ASC
+            ORDER BY timestamp DESC
             LIMIT ?
         """
 
