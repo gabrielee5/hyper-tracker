@@ -6,125 +6,159 @@
     <title>Contrarian Signals Dashboard</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <style>
+        /* Parse.bot Design System - Base Setup */
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
         }
 
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            padding: 20px;
-            color: #333;
+        html {
+            font-size: 14px;
         }
 
+        body {
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
+            background: #fff;
+            color: #000;
+            line-height: 1.5;
+            min-height: 100vh;
+            padding: 2.5rem 1.25rem;
+        }
+
+        /* Universal Transition */
+        button, a, input, select, textarea, .card, .badge, .stat-box, tbody tr {
+            transition: all 0.15s;
+        }
+
+        /* Layout */
         .container {
-            max-width: 1400px;
+            max-width: 80rem;
             margin: 0 auto;
         }
 
+        /* Header */
         header {
-            background: white;
-            border-radius: 12px;
-            padding: 24px;
-            margin-bottom: 20px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            background: #fff;
+            border: 0.85px solid #e5e7eb;
+            padding: 1.25rem;
+            margin-bottom: 1.25rem;
         }
 
         h1 {
-            color: #667eea;
-            font-size: 32px;
-            margin-bottom: 12px;
-        }
-
-        .stats-row {
-            display: flex;
-            gap: 20px;
-            margin-top: 16px;
-        }
-
-        .stat-box {
-            flex: 1;
-            padding: 16px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            border-radius: 8px;
-            color: white;
-            text-align: center;
-        }
-
-        .stat-label {
-            font-size: 12px;
-            opacity: 0.9;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-
-        .stat-value {
-            font-size: 28px;
-            font-weight: bold;
-            margin-top: 8px;
+            color: #000;
+            font-size: 2.25rem;
+            font-weight: 600;
+            line-height: 2.5rem;
+            margin-bottom: 0.625rem;
         }
 
         .update-time {
-            color: #666;
-            font-size: 14px;
-            margin-top: 12px;
+            color: #6b7280;
+            font-size: 0.875rem;
+            margin-top: 0.625rem;
         }
 
+        /* Stats */
+        .stats-row {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1.25rem;
+            margin-top: 1.25rem;
+        }
+
+        .stat-box {
+            padding: 1.25rem;
+            background: #fff;
+            border: 0.85px solid #e5e7eb;
+            text-align: center;
+        }
+
+        .stat-box:hover {
+            border-color: #9ca3af;
+        }
+
+        .stat-label {
+            font-size: 0.75rem;
+            color: #6b7280;
+            text-transform: uppercase;
+            letter-spacing: 0.025em;
+            margin-bottom: 0.625rem;
+        }
+
+        .stat-value {
+            font-size: 1.875rem;
+            font-weight: 600;
+            line-height: 2.25rem;
+            color: #000;
+        }
+
+        /* Signals Container */
         .signals-container {
-            background: white;
-            border-radius: 12px;
-            padding: 24px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            background: #fff;
+            border: 0.85px solid #e5e7eb;
+            padding: 1.25rem;
         }
 
         .signals-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 20px;
+            margin-bottom: 1.25rem;
+            padding-bottom: 1.25rem;
+            border-bottom: 0.85px solid #e5e7eb;
         }
 
         .signals-title {
-            font-size: 24px;
-            color: #667eea;
-            font-weight: bold;
+            font-size: 1.125rem;
+            color: #000;
+            font-weight: 600;
         }
 
+        .auto-refresh {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.75rem;
+            color: #6b7280;
+            margin-top: 0.375rem;
+        }
+
+        /* Buttons */
         .refresh-btn {
-            background: #667eea;
-            color: white;
+            background: #000;
+            color: #fff;
             border: none;
-            padding: 10px 20px;
-            border-radius: 6px;
+            padding: 0.625rem 1.25rem;
             cursor: pointer;
-            font-size: 14px;
-            transition: all 0.3s;
+            font-family: inherit;
+            font-size: 0.875rem;
         }
 
         .refresh-btn:hover {
-            background: #764ba2;
-            transform: translateY(-2px);
+            background: #374151;
         }
 
+        /* Table */
         table {
             width: 100%;
             border-collapse: collapse;
-            margin-top: 16px;
+            margin-top: 1.25rem;
         }
 
         thead {
-            background: #f8f9fa;
+            background: #f9fafb;
+            border-bottom: 0.85px solid #e5e7eb;
         }
 
         th {
-            padding: 12px;
+            padding: 0.9375rem 1.25rem;
             text-align: left;
-            font-weight: 600;
-            color: #667eea;
-            border-bottom: 2px solid #667eea;
+            font-size: 0.75rem;
+            font-weight: 500;
+            color: #6b7280;
+            text-transform: uppercase;
+            letter-spacing: 0.025em;
         }
 
         th.right-align {
@@ -132,156 +166,167 @@
         }
 
         td {
-            padding: 12px;
-            border-bottom: 1px solid #e9ecef;
+            padding: 1.25rem;
+            border-bottom: 0.85px solid #e5e7eb;
+            font-size: 0.875rem;
         }
 
         tbody tr:hover {
-            background: #f8f9fa;
+            background: #f9fafb;
         }
 
+        tbody tr:last-child td {
+            border-bottom: none;
+        }
+
+        /* Coin Name */
         .coin-name {
-            font-weight: bold;
-            font-size: 16px;
-            color: #333;
+            font-weight: 600;
+            font-size: 0.875rem;
+            color: #000;
         }
 
+        .coin-name-clickable {
+            cursor: pointer;
+        }
+
+        .coin-name-clickable:hover {
+            color: #000;
+            text-decoration: underline;
+        }
+
+        /* Signal Colors - Using Design System */
         .signal-short-strong {
-            color: #dc3545;
-            font-weight: bold;
+            color: #991b1b;
+            font-weight: 600;
         }
 
         .signal-short-moderate {
-            color: #fd7e14;
-            font-weight: 600;
+            color: #854d0e;
+            font-weight: 500;
         }
 
         .signal-long-strong {
-            color: #28a745;
-            font-weight: bold;
+            color: #166534;
+            font-weight: 600;
         }
 
         .signal-long-moderate {
-            color: #20c997;
-            font-weight: 600;
+            color: #166534;
+            font-weight: 500;
         }
 
         .signal-neutral {
-            color: #6c757d;
+            color: #6b7280;
         }
 
+        /* Confidence Colors */
         .confidence-high {
-            color: #28a745;
-            font-weight: bold;
-        }
-
-        .confidence-medium {
-            color: #ffc107;
+            color: #166534;
             font-weight: 600;
         }
 
-        .confidence-low {
-            color: #6c757d;
+        .confidence-medium {
+            color: #854d0e;
+            font-weight: 500;
         }
 
+        .confidence-low {
+            color: #6b7280;
+        }
+
+        /* Position Bar */
         .position-bar-container {
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 0.5rem;
         }
 
         .position-bar {
             flex: 1;
-            height: 24px;
-            background: #e9ecef;
-            border-radius: 4px;
+            height: 1.5rem;
+            background: #f9fafb;
+            border: 0.85px solid #e5e7eb;
             overflow: hidden;
             display: flex;
         }
 
         .bar-long {
-            background: linear-gradient(90deg, #dc3545 0%, #ff6b7a 100%);
+            background: #ef4444;
             display: flex;
             align-items: center;
             justify-content: center;
-            color: white;
-            font-size: 11px;
-            font-weight: bold;
+            color: #fff;
+            font-size: 0.625rem;
+            font-weight: 600;
         }
 
         .bar-short {
-            background: linear-gradient(90deg, #20c997 0%, #4dd4ac 100%);
+            background: #22c55e;
             display: flex;
             align-items: center;
             justify-content: center;
-            color: white;
-            font-size: 11px;
-            font-weight: bold;
+            color: #fff;
+            font-size: 0.625rem;
+            font-weight: 600;
         }
 
         .position-label {
-            font-size: 12px;
-            color: #666;
-            min-width: 120px;
+            font-size: 0.75rem;
+            color: #6b7280;
+            min-width: 7.5rem;
         }
 
+        /* Status Messages */
         .loading {
             text-align: center;
-            padding: 40px;
-            color: #666;
+            padding: 2.5rem;
+            color: #6b7280;
+            font-size: 0.875rem;
         }
 
         .no-signals {
             text-align: center;
-            padding: 40px;
-            color: #999;
-            font-size: 16px;
+            padding: 2.5rem;
+            color: #9ca3af;
+            font-size: 0.875rem;
         }
 
-        .auto-refresh {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            font-size: 14px;
-            color: #666;
-        }
-
+        /* Status Indicator - Circle allowed per design system */
         .status-indicator {
-            width: 12px;
-            height: 12px;
-            border-radius: 50%;
-            background: #28a745;
-            animation: pulse 2s infinite;
+            width: 0.375rem;
+            height: 0.375rem;
+            border-radius: 9999px;
+            background: #22c55e;
+            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
         }
 
         @keyframes pulse {
-            0%, 100% { opacity: 1; }
             50% { opacity: 0.5; }
         }
 
+        /* Priority Badge */
         .priority-badge {
             display: inline-block;
-            background: #ffc107;
-            color: #000;
-            padding: 2px 8px;
-            border-radius: 4px;
-            font-size: 10px;
-            font-weight: bold;
-            margin-left: 8px;
+            background: #fefce8;
+            color: #854d0e;
+            border: 0.85px solid #fef08a;
+            padding: 0.125rem 0.625rem;
+            font-size: 0.625rem;
+            font-weight: 500;
+            margin-left: 0.5rem;
         }
 
-        /* Modal styles */
+        /* Modal */
         .modal-overlay {
             display: none;
             position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0, 0, 0, 0.7);
-            z-index: 1000;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 50;
             align-items: center;
             justify-content: center;
+            padding: 1.25rem;
         }
 
         .modal-overlay.active {
@@ -289,79 +334,113 @@
         }
 
         .modal-content {
-            background: white;
-            border-radius: 12px;
-            padding: 32px;
-            max-width: 900px;
-            width: 90%;
+            background: #fff;
+            border: 0.85px solid #e5e7eb;
+            max-width: 56rem;
+            width: 100%;
             max-height: 80vh;
             overflow-y: auto;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-            position: relative;
         }
 
         .modal-header {
+            padding: 1.25rem;
+            border-bottom: 0.85px solid #e5e7eb;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 24px;
-            border-bottom: 2px solid #667eea;
-            padding-bottom: 16px;
         }
 
         .modal-title {
-            font-size: 24px;
-            color: #667eea;
-            font-weight: bold;
+            font-size: 1.125rem;
+            color: #000;
+            font-weight: 600;
         }
 
         .modal-close {
-            background: transparent;
-            border: none;
-            font-size: 28px;
-            color: #999;
+            background: #fff;
+            border: 0.85px solid #e5e7eb;
+            font-size: 1.25rem;
+            color: #6b7280;
             cursor: pointer;
-            padding: 0;
-            width: 32px;
-            height: 32px;
+            padding: 0.25rem;
+            width: 2rem;
+            height: 2rem;
             display: flex;
             align-items: center;
             justify-content: center;
-            border-radius: 50%;
-            transition: all 0.2s;
         }
 
         .modal-close:hover {
-            background: #f0f0f0;
-            color: #333;
+            background: #f9fafb;
+            border-color: #9ca3af;
+            color: #000;
+        }
+
+        .modal-body {
+            padding: 1.25rem;
         }
 
         .chart-container {
             position: relative;
-            height: 400px;
-            margin-top: 20px;
-        }
-
-        .coin-name-clickable {
-            cursor: pointer;
-            transition: color 0.2s;
-        }
-
-        .coin-name-clickable:hover {
-            color: #667eea;
-            text-decoration: underline;
+            height: 25rem;
+            margin-top: 1.25rem;
+            background: #fafafa;
+            border: 0.85px solid #e5e7eb;
+            padding: 1.25rem;
         }
 
         .modal-loading {
             text-align: center;
-            padding: 40px;
-            color: #666;
+            padding: 2.5rem;
+            color: #6b7280;
         }
 
         .modal-error {
             text-align: center;
-            padding: 40px;
-            color: #dc3545;
+            padding: 2.5rem;
+            color: #991b1b;
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 0.5rem;
+            height: 0.5rem;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #d1d5db;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #9ca3af;
+        }
+
+        /* Responsive */
+        @media (max-width: 640px) {
+            body {
+                padding: 1.25rem;
+            }
+
+            h1 {
+                font-size: 1.5rem;
+                line-height: 2rem;
+            }
+
+            .stats-row {
+                grid-template-columns: 1fr;
+            }
+
+            table {
+                font-size: 0.75rem;
+            }
+
+            td, th {
+                padding: 0.625rem;
+            }
         }
     </style>
 </head>
@@ -479,25 +558,23 @@
             const longLabel = isUsd ? `$${(longVal/1000).toFixed(0)}K` : Math.round(longVal);
             const shortLabel = isUsd ? `$${(shortVal/1000).toFixed(0)}K` : Math.round(shortVal);
 
-            // Only show changes for count-based (not USD)
-            const changeInfo = !isUsd ? `<div style="font-size: 11px; color: #666; margin-top: 4px;">
-                L${formatChange(longChange)} S${formatChange(shortChange)}
-            </div>` : '';
+            // Format changes inline for count-based (not USD)
+            const longChangeText = !isUsd && longChange !== 0 ?
+                (longChange > 0 ? ` <span style="color: #22c55e;">(+${longChange})</span>` : ` <span style="color: #ef4444;">(${longChange})</span>`) : '';
+            const shortChangeText = !isUsd && shortChange !== 0 ?
+                (shortChange > 0 ? ` <span style="color: #22c55e;">(+${shortChange})</span>` : ` <span style="color: #ef4444;">(${shortChange})</span>`) : '';
 
             return `
-                <div>
-                    <div class="position-bar-container">
-                        <div class="position-bar">
-                            <div class="bar-long" style="width: ${longPct}%">
-                                ${longPct > 15 ? longPct.toFixed(0) + '%' : ''}
-                            </div>
-                            <div class="bar-short" style="width: ${shortPct}%">
-                                ${shortPct > 15 ? shortPct.toFixed(0) + '%' : ''}
-                            </div>
+                <div class="position-bar-container">
+                    <div class="position-bar">
+                        <div class="bar-long" style="width: ${longPct}%">
+                            ${longPct > 15 ? longPct.toFixed(0) + '%' : ''}
                         </div>
-                        <div class="position-label">L:${longLabel} S:${shortLabel}</div>
+                        <div class="bar-short" style="width: ${shortPct}%">
+                            ${shortPct > 15 ? shortPct.toFixed(0) + '%' : ''}
+                        </div>
                     </div>
-                    ${changeInfo}
+                    <div class="position-label">L:${longLabel}${longChangeText} S:${shortLabel}${shortChangeText}</div>
                 </div>
             `;
         }
@@ -684,7 +761,7 @@
                     confidenceChart.destroy();
                 }
 
-                // Create new chart
+                // Create new chart with Parse.bot design system colors
                 const ctx = document.getElementById('confidenceChart').getContext('2d');
                 confidenceChart = new Chart(ctx, {
                     type: 'line',
@@ -693,16 +770,16 @@
                         datasets: [{
                             label: 'Confidence Score (%)',
                             data: confidenceScores,
-                            borderColor: '#667eea',
-                            backgroundColor: 'rgba(102, 126, 234, 0.1)',
-                            borderWidth: 2,
+                            borderColor: '#000',
+                            backgroundColor: 'rgba(0, 0, 0, 0.05)',
+                            borderWidth: 1,
                             fill: true,
-                            tension: 0.4,
-                            pointRadius: 4,
-                            pointHoverRadius: 6,
-                            pointBackgroundColor: '#667eea',
+                            tension: 0,
+                            pointRadius: 3,
+                            pointHoverRadius: 5,
+                            pointBackgroundColor: '#000',
                             pointBorderColor: '#fff',
-                            pointBorderWidth: 2
+                            pointBorderWidth: 1
                         }]
                     },
                     options: {
@@ -712,11 +789,32 @@
                             legend: {
                                 display: true,
                                 position: 'top',
+                                labels: {
+                                    font: {
+                                        family: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
+                                        size: 12
+                                    },
+                                    color: '#000'
+                                }
                             },
                             title: {
                                 display: false
                             },
                             tooltip: {
+                                backgroundColor: '#fff',
+                                titleColor: '#000',
+                                bodyColor: '#000',
+                                borderColor: '#e5e7eb',
+                                borderWidth: 1,
+                                padding: 10,
+                                titleFont: {
+                                    family: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
+                                    size: 12
+                                },
+                                bodyFont: {
+                                    family: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
+                                    size: 12
+                                },
                                 callbacks: {
                                     label: function(context) {
                                         return 'Confidence: ' + context.parsed.y.toFixed(1) + '%';
@@ -729,12 +827,18 @@
                                 beginAtZero: true,
                                 max: 100,
                                 ticks: {
+                                    font: {
+                                        family: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
+                                        size: 11
+                                    },
+                                    color: '#6b7280',
                                     callback: function(value) {
                                         return value + '%';
                                     }
                                 },
                                 grid: {
-                                    color: 'rgba(0, 0, 0, 0.05)'
+                                    color: '#e5e7eb',
+                                    lineWidth: 0.85
                                 }
                             },
                             x: {
@@ -742,6 +846,11 @@
                                     display: false
                                 },
                                 ticks: {
+                                    font: {
+                                        family: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
+                                        size: 11
+                                    },
+                                    color: '#6b7280',
                                     maxRotation: 45,
                                     minRotation: 45
                                 }
