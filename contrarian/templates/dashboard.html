@@ -558,23 +558,25 @@
             const longLabel = isUsd ? `$${(longVal/1000).toFixed(0)}K` : Math.round(longVal);
             const shortLabel = isUsd ? `$${(shortVal/1000).toFixed(0)}K` : Math.round(shortVal);
 
-            // Format changes inline for count-based (not USD)
-            const longChangeText = !isUsd && longChange !== 0 ?
-                (longChange > 0 ? ` <span style="color: #22c55e;">(+${longChange})</span>` : ` <span style="color: #ef4444;">(${longChange})</span>`) : '';
-            const shortChangeText = !isUsd && shortChange !== 0 ?
-                (shortChange > 0 ? ` <span style="color: #22c55e;">(+${shortChange})</span>` : ` <span style="color: #ef4444;">(${shortChange})</span>`) : '';
+            // Only show changes for count-based (not USD)
+            const changeInfo = !isUsd ? `<div style="font-size: 11px; color: #666; margin-top: 4px;">
+                L${formatChange(longChange)} S${formatChange(shortChange)}
+            </div>` : '';
 
             return `
-                <div class="position-bar-container">
-                    <div class="position-bar">
-                        <div class="bar-long" style="width: ${longPct}%">
-                            ${longPct > 15 ? longPct.toFixed(0) + '%' : ''}
+                <div>
+                    <div class="position-bar-container">
+                        <div class="position-bar">
+                            <div class="bar-long" style="width: ${longPct}%">
+                                ${longPct > 15 ? longPct.toFixed(0) + '%' : ''}
+                            </div>
+                            <div class="bar-short" style="width: ${shortPct}%">
+                                ${shortPct > 15 ? shortPct.toFixed(0) + '%' : ''}
+                            </div>
                         </div>
-                        <div class="bar-short" style="width: ${shortPct}%">
-                            ${shortPct > 15 ? shortPct.toFixed(0) + '%' : ''}
-                        </div>
+                        <div class="position-label">L:${longLabel} S:${shortLabel}</div>
                     </div>
-                    <div class="position-label">L:${longLabel}${longChangeText} S:${shortLabel}${shortChangeText}</div>
+                    ${changeInfo}
                 </div>
             `;
         }
