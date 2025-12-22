@@ -100,9 +100,13 @@
 
         .chart-container {
             grid-column: 1 / -1;
-            height: 400px;
             position: relative;
             background: #fafafa;
+        }
+
+        .chart-container canvas {
+            height: 450px !important;
+            width: 100% !important;
         }
 
         table {
@@ -475,6 +479,10 @@
                         responsive: true,
                         maintainAspectRatio: false,
                         animation: false,
+                        interaction: {
+                            mode: 'index',
+                            intersect: false
+                        },
                         plugins: {
                             legend: {
                                 labels: {
@@ -485,6 +493,21 @@
                                     },
                                     padding: 15
                                 }
+                            },
+                            tooltip: {
+                                backgroundColor: '#fff',
+                                titleColor: '#000',
+                                bodyColor: '#000',
+                                borderColor: '#e5e7eb',
+                                borderWidth: 0.85,
+                                padding: 10,
+                                bodyFont: {
+                                    family: 'ui-monospace, monospace'
+                                },
+                                titleFont: {
+                                    family: 'ui-monospace, monospace',
+                                    weight: '600'
+                                }
                             }
                         },
                         scales: {
@@ -494,6 +517,16 @@
                                     font: {
                                         family: 'ui-monospace, monospace',
                                         size: 11
+                                    },
+                                    maxRotation: 0,
+                                    minRotation: 0,
+                                    autoSkip: false,
+                                    callback: function(value, index, ticks) {
+                                        // Only show first and last tick
+                                        if (index === 0 || index === ticks.length - 1) {
+                                            return this.getLabelForValue(value);
+                                        }
+                                        return '';
                                     }
                                 },
                                 grid: {
