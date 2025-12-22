@@ -6,58 +6,71 @@
     <title>Paper Trading Simulator - Dashboard</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
+        /* Parse.bot Design System - Base Setup */
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
         }
 
+        html {
+            font-size: 14px;
+        }
+
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: #0a0e27;
-            color: #e0e0e0;
-            padding: 20px;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
+            background: #fff;
+            color: #000;
+            line-height: 1.5;
         }
 
         .container {
-            max-width: 1800px;
+            max-width: 80rem;
             margin: 0 auto;
+            padding: 2.5rem 1.25rem;
         }
 
         h1 {
             text-align: center;
-            margin-bottom: 30px;
-            color: #4fc3f7;
-            font-size: 2.5em;
+            margin-bottom: 2.5rem;
+            color: #000;
+            font-size: 2.25rem;
+            font-weight: 600;
+            line-height: 2.5rem;
         }
 
         .dashboard-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 20px;
-            margin-bottom: 30px;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 1.25rem;
+            margin-bottom: 2.5rem;
         }
 
         .card {
-            background: #1a1f3a;
-            border-radius: 10px;
-            padding: 20px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+            background: #fff;
+            border: 0.85px solid #e5e7eb;
+            padding: 1.25rem;
+            transition: all 0.15s;
+        }
+
+        .card:hover {
+            border-color: #9ca3af;
         }
 
         .card h2 {
-            color: #4fc3f7;
-            margin-bottom: 15px;
-            font-size: 1.3em;
-            border-bottom: 2px solid #2a3f5f;
-            padding-bottom: 10px;
+            color: #000;
+            margin-bottom: 1.25rem;
+            font-size: 1.125rem;
+            font-weight: 600;
+            border-bottom: 0.85px solid #e5e7eb;
+            padding-bottom: 0.9375rem;
         }
 
         .metric {
             display: flex;
             justify-content: space-between;
-            padding: 10px 0;
-            border-bottom: 1px solid #2a3f5f;
+            padding: 0.9375rem 0;
+            border-bottom: 0.85px solid #e5e7eb;
         }
 
         .metric:last-child {
@@ -65,26 +78,31 @@
         }
 
         .metric-label {
-            color: #9e9e9e;
+            color: #6b7280;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.025em;
         }
 
         .metric-value {
-            font-weight: bold;
-            font-size: 1.1em;
+            font-weight: 600;
+            font-size: 0.875rem;
+            color: #000;
         }
 
         .positive {
-            color: #4caf50;
+            color: #22c55e;
         }
 
         .negative {
-            color: #f44336;
+            color: #ef4444;
         }
 
         .chart-container {
             grid-column: 1 / -1;
             height: 400px;
             position: relative;
+            background: #fafafa;
         }
 
         table {
@@ -93,29 +111,38 @@
         }
 
         th, td {
-            padding: 12px;
+            padding: 1.25rem;
             text-align: left;
-            border-bottom: 1px solid #2a3f5f;
+            border-bottom: 0.85px solid #e5e7eb;
+            font-size: 0.875rem;
         }
 
         th {
-            background: #2a3f5f;
-            color: #4fc3f7;
-            font-weight: 600;
+            background: #f9fafb;
+            color: #6b7280;
+            font-weight: 500;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.025em;
+            padding: 0.9375rem 1.25rem;
         }
 
-        tr:hover {
-            background: #252b4a;
+        tbody tr:hover {
+            background: #f9fafb;
+        }
+
+        tbody tr:last-child td {
+            border-bottom: none;
         }
 
         .long {
-            color: #4caf50;
-            font-weight: bold;
+            color: #22c55e;
+            font-weight: 600;
         }
 
         .short {
-            color: #f44336;
-            font-weight: bold;
+            color: #ef4444;
+            font-weight: 600;
         }
 
         .activity-log {
@@ -124,48 +151,91 @@
         }
 
         .activity-item {
-            padding: 10px;
-            margin-bottom: 8px;
-            background: #252b4a;
-            border-radius: 5px;
-            border-left: 3px solid #4fc3f7;
+            padding: 0.9375rem;
+            margin-bottom: 0.625rem;
+            background: #f9fafb;
+            border: 0.85px solid #e5e7eb;
+            border-left: 3px solid #000;
+            font-size: 0.875rem;
         }
 
         .activity-time {
-            color: #9e9e9e;
-            font-size: 0.85em;
+            color: #9ca3af;
+            font-size: 0.75rem;
+            margin-bottom: 0.25rem;
         }
 
         .loading {
             text-align: center;
-            padding: 20px;
-            color: #9e9e9e;
+            padding: 1.25rem;
+            color: #9ca3af;
+            font-size: 0.875rem;
         }
 
         .status-indicator {
             display: inline-block;
-            width: 10px;
-            height: 10px;
-            border-radius: 50%;
-            background: #4caf50;
-            animation: pulse 2s infinite;
+            width: 0.375rem;
+            height: 0.375rem;
+            border-radius: 9999px;
+            background: #22c55e;
+            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+            margin-right: 0.625rem;
         }
 
         @keyframes pulse {
-            0%, 100% { opacity: 1; }
             50% { opacity: 0.5; }
         }
 
         .large-value {
-            font-size: 2em;
-            font-weight: bold;
+            font-size: 1.875rem;
+            font-weight: 600;
             text-align: center;
-            margin: 10px 0;
+            margin: 0.9375rem 0;
+            line-height: 2.25rem;
+            color: #000;
         }
 
         .pie-chart-container {
             height: 300px;
             position: relative;
+        }
+
+        /* Scrollbar styling */
+        ::-webkit-scrollbar {
+            width: 0.5rem;
+            height: 0.5rem;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #d1d5db;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #9ca3af;
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 640px) {
+            .container {
+                padding: 1.25rem;
+            }
+
+            h1 {
+                font-size: 1.5rem;
+                line-height: 2rem;
+            }
+
+            .card {
+                padding: 1rem;
+            }
+
+            th, td {
+                padding: 0.75rem;
+            }
         }
     </style>
 </head>
@@ -389,32 +459,61 @@
                         datasets: [{
                             label: 'Portfolio Value',
                             data: data.map(d => d.equity),
-                            borderColor: '#4fc3f7',
-                            backgroundColor: 'rgba(79, 195, 247, 0.1)',
+                            borderColor: '#000',
+                            backgroundColor: 'rgba(0, 0, 0, 0.05)',
+                            borderWidth: 1.5,
                             fill: true,
-                            tension: 0.4
+                            tension: 0.2,
+                            pointRadius: 0,
+                            pointHoverRadius: 4,
+                            pointHoverBackgroundColor: '#000',
+                            pointHoverBorderColor: '#fff',
+                            pointHoverBorderWidth: 2
                         }]
                     },
                     options: {
                         responsive: true,
                         maintainAspectRatio: false,
-                        animation: false, // Disable initial animation
+                        animation: false,
                         plugins: {
                             legend: {
-                                labels: { color: '#e0e0e0' }
+                                labels: {
+                                    color: '#000',
+                                    font: {
+                                        family: 'ui-monospace, monospace',
+                                        size: 12
+                                    },
+                                    padding: 15
+                                }
                             }
                         },
                         scales: {
                             x: {
-                                ticks: { color: '#9e9e9e' },
-                                grid: { color: '#2a3f5f' }
+                                ticks: {
+                                    color: '#6b7280',
+                                    font: {
+                                        family: 'ui-monospace, monospace',
+                                        size: 11
+                                    }
+                                },
+                                grid: {
+                                    color: '#e5e7eb',
+                                    lineWidth: 0.85
+                                }
                             },
                             y: {
                                 ticks: {
-                                    color: '#9e9e9e',
+                                    color: '#6b7280',
+                                    font: {
+                                        family: 'ui-monospace, monospace',
+                                        size: 11
+                                    },
                                     callback: value => formatCurrency(value)
                                 },
-                                grid: { color: '#2a3f5f' }
+                                grid: {
+                                    color: '#e5e7eb',
+                                    lineWidth: 0.85
+                                }
                             }
                         }
                     }
@@ -429,14 +528,14 @@
             let labels = positions.map(p => `${p.pair} ${p.direction}`);
             let data = positions.map(p => p.current_size_usd);
             let colors = positions.map(p =>
-                p.direction === 'LONG' ? 'rgba(76, 175, 80, 0.8)' : 'rgba(244, 67, 54, 0.8)'
+                p.direction === 'LONG' ? '#22c55e' : '#ef4444'
             );
 
             // Add cash to allocation chart if available (three-asset strategy)
             if (portfolioData && portfolioData.cash_balance !== undefined && portfolioData.cash_balance > 0) {
                 labels.push('Cash');
                 data.push(portfolioData.cash_balance);
-                colors.push('rgba(255, 193, 7, 0.8)'); // Amber/gold color for cash
+                colors.push('#9ca3af'); // Gray color for cash
             }
 
             // Update existing chart data instead of recreating it
@@ -454,18 +553,42 @@
                         datasets: [{
                             data: data,
                             backgroundColor: colors,
-                            borderColor: '#1a1f3a',
+                            borderColor: '#fff',
                             borderWidth: 2
                         }]
                     },
                     options: {
                         responsive: true,
                         maintainAspectRatio: false,
-                        animation: false, // Disable initial animation
+                        animation: false,
                         plugins: {
                             legend: {
                                 position: 'right',
-                                labels: { color: '#e0e0e0' }
+                                labels: {
+                                    color: '#000',
+                                    font: {
+                                        family: 'ui-monospace, monospace',
+                                        size: 11
+                                    },
+                                    padding: 10,
+                                    boxWidth: 15,
+                                    boxHeight: 15
+                                }
+                            },
+                            tooltip: {
+                                backgroundColor: '#fff',
+                                titleColor: '#000',
+                                bodyColor: '#000',
+                                borderColor: '#e5e7eb',
+                                borderWidth: 0.85,
+                                padding: 10,
+                                bodyFont: {
+                                    family: 'ui-monospace, monospace'
+                                },
+                                titleFont: {
+                                    family: 'ui-monospace, monospace',
+                                    weight: '600'
+                                }
                             }
                         }
                     }
