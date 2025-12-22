@@ -22,96 +22,114 @@ DASHBOARD_TEMPLATE = """
             box-sizing: border-box;
         }
 
+        html {
+            font-size: 14px;
+        }
+
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: #333;
-            padding: 20px;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
+            background: #fff;
+            color: #000;
+            padding: 2.5rem 1.25rem;
             min-height: 100vh;
+            line-height: 1.5;
         }
 
         .container {
-            max-width: 1400px;
+            max-width: 80rem;
             margin: 0 auto;
         }
 
         .header {
-            background: white;
-            padding: 30px;
-            border-radius: 12px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-            margin-bottom: 20px;
+            background: #fff;
+            padding: 1.875rem 1.25rem;
+            border: 0.85px solid #e5e7eb;
+            margin-bottom: 1.25rem;
             text-align: center;
+            transition: all 0.15s;
+        }
+
+        .header:hover {
+            border-color: #9ca3af;
         }
 
         .header h1 {
-            color: #667eea;
-            font-size: 2.5em;
-            margin-bottom: 10px;
+            color: #000;
+            font-size: 2.25rem;
+            font-weight: 600;
+            line-height: 2.5rem;
+            margin-bottom: 0.625rem;
         }
 
         .header .subtitle {
-            color: #666;
-            font-size: 1.1em;
+            color: #6b7280;
+            font-size: 1rem;
         }
 
         .stats-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 20px;
-            margin-bottom: 20px;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 1.25rem;
+            margin-bottom: 1.25rem;
         }
 
         .stat-card {
-            background: white;
-            padding: 25px;
-            border-radius: 12px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-            transition: transform 0.2s;
+            background: #fff;
+            padding: 1.25rem;
+            border: 0.85px solid #e5e7eb;
+            transition: all 0.15s;
         }
 
         .stat-card:hover {
-            transform: translateY(-5px);
+            border-color: #9ca3af;
         }
 
         .stat-label {
-            color: #666;
-            font-size: 0.9em;
+            color: #6b7280;
+            font-size: 0.75rem;
             text-transform: uppercase;
-            letter-spacing: 1px;
-            margin-bottom: 10px;
+            letter-spacing: 0.025em;
+            margin-bottom: 0.625rem;
+            font-weight: 500;
         }
 
         .stat-value {
-            color: #667eea;
-            font-size: 2.5em;
-            font-weight: bold;
+            color: #000;
+            font-size: 1.875rem;
+            font-weight: 600;
+            line-height: 2.25rem;
         }
 
         .stat-subvalue {
-            color: #999;
-            font-size: 0.9em;
-            margin-top: 5px;
+            color: #9ca3af;
+            font-size: 0.875rem;
+            margin-top: 0.375rem;
         }
 
         .content-grid {
             display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 20px;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1.25rem;
         }
 
         .card {
-            background: white;
-            padding: 25px;
-            border-radius: 12px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            background: #fff;
+            padding: 1.25rem;
+            border: 0.85px solid #e5e7eb;
+            transition: all 0.15s;
+        }
+
+        .card:hover {
+            border-color: #9ca3af;
         }
 
         .card h2 {
-            color: #667eea;
-            margin-bottom: 20px;
-            border-bottom: 2px solid #667eea;
-            padding-bottom: 10px;
+            color: #000;
+            font-size: 1.125rem;
+            font-weight: 600;
+            margin-bottom: 1.25rem;
+            border-bottom: 0.85px solid #e5e7eb;
+            padding-bottom: 0.9375rem;
         }
 
         .table {
@@ -121,76 +139,93 @@ DASHBOARD_TEMPLATE = """
 
         .table th {
             text-align: left;
-            padding: 12px;
-            background: #f8f9fa;
-            color: #666;
-            font-weight: 600;
-            font-size: 0.9em;
+            padding: 0.9375rem 1.25rem;
+            background: #f9fafb;
+            color: #6b7280;
+            font-weight: 500;
+            font-size: 0.75rem;
             text-transform: uppercase;
-            letter-spacing: 0.5px;
+            letter-spacing: 0.025em;
+            border-bottom: 0.85px solid #e5e7eb;
         }
 
         .table td {
-            padding: 12px;
-            border-bottom: 1px solid #eee;
+            padding: 1.25rem;
+            border-bottom: 0.85px solid #e5e7eb;
+            font-size: 0.875rem;
         }
 
-        .table tr:hover {
-            background: #f8f9fa;
+        .table tbody tr:hover {
+            background: #f9fafb;
+        }
+
+        .table tbody tr:last-child td {
+            border-bottom: none;
         }
 
         .address {
-            font-family: 'Courier New', monospace;
-            color: #667eea;
-            font-size: 0.9em;
+            font-family: inherit;
+            color: #000;
+            font-size: 0.875rem;
         }
 
         .badge {
             display: inline-block;
-            padding: 4px 8px;
-            border-radius: 4px;
-            font-size: 0.85em;
-            font-weight: 600;
+            padding: 0.125rem 0.625rem;
+            font-size: 0.75rem;
+            font-weight: 500;
+            border: 0.85px solid;
         }
 
         .badge-success {
-            background: #d4edda;
-            color: #155724;
+            background: #f0fdf4;
+            color: #166534;
+            border-color: #bbf7d0;
         }
 
         .badge-info {
-            background: #d1ecf1;
-            color: #0c5460;
+            background: #f9fafb;
+            color: #6b7280;
+            border-color: #e5e7eb;
         }
 
         .timestamp {
-            color: #999;
-            font-size: 0.85em;
+            color: #9ca3af;
+            font-size: 0.75rem;
         }
 
         .footer {
             text-align: center;
-            color: white;
-            margin-top: 30px;
-            padding: 20px;
+            color: #6b7280;
+            margin-top: 2.5rem;
+            padding: 1.25rem;
+            font-size: 0.75rem;
         }
 
         .status-indicator {
             display: inline-block;
-            width: 10px;
-            height: 10px;
-            border-radius: 50%;
-            background: #28a745;
-            animation: pulse 2s infinite;
-            margin-right: 8px;
+            width: 0.375rem;
+            height: 0.375rem;
+            border-radius: 9999px;
+            background: #22c55e;
+            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+            margin-right: 0.5rem;
         }
 
         @keyframes pulse {
-            0%, 100% { opacity: 1; }
             50% { opacity: 0.5; }
         }
 
-        @media (max-width: 768px) {
+        @media (max-width: 640px) {
+            body {
+                padding: 1.25rem;
+            }
+
+            .header h1 {
+                font-size: 1.5rem;
+                line-height: 2rem;
+            }
+
             .content-grid {
                 grid-template-columns: 1fr;
             }
@@ -204,7 +239,7 @@ DASHBOARD_TEMPLATE = """
 <body>
     <div class="container">
         <div class="header">
-            <h1>🚀 Hyperliquid Tracker</h1>
+            <h1>Hyperliquid Tracker</h1>
             <p class="subtitle">
                 <span class="status-indicator"></span>
                 Real-time trader address monitoring
@@ -237,7 +272,7 @@ DASHBOARD_TEMPLATE = """
 
         <div class="content-grid">
             <div class="card">
-                <h2>📊 Tracking Status</h2>
+                <h2>Tracking Status</h2>
                 <table class="table">
                     <tr>
                         <td><strong>Network</strong></td>
@@ -259,7 +294,7 @@ DASHBOARD_TEMPLATE = """
             </div>
 
             <div class="card">
-                <h2>📈 Trades by Coin</h2>
+                <h2>Trades by Coin</h2>
                 <table class="table">
                     <thead>
                         <tr>
@@ -268,14 +303,14 @@ DASHBOARD_TEMPLATE = """
                         </tr>
                     </thead>
                     <tbody id="tradesByCoin">
-                        <tr><td colspan="2" style="text-align: center; color: #999;">No data yet</td></tr>
+                        <tr><td colspan="2" style="text-align: center; color: #9ca3af;">No data yet</td></tr>
                     </tbody>
                 </table>
             </div>
         </div>
 
-        <div class="card" style="margin-top: 20px;">
-            <h2>🆕 Recent Addresses</h2>
+        <div class="card" style="margin-top: 1.25rem;">
+            <h2>Recent Addresses</h2>
             <table class="table">
                 <thead>
                     <tr>
@@ -286,14 +321,14 @@ DASHBOARD_TEMPLATE = """
                     </tr>
                 </thead>
                 <tbody id="recentAddresses">
-                    <tr><td colspan="4" style="text-align: center; color: #999;">No addresses yet</td></tr>
+                    <tr><td colspan="4" style="text-align: center; color: #9ca3af;">No addresses yet</td></tr>
                 </tbody>
             </table>
         </div>
 
         <div class="footer">
             <p>Auto-refreshes every 5 seconds</p>
-            <p style="margin-top: 10px; opacity: 0.8;">Powered by Hyperliquid Python SDK</p>
+            <p style="margin-top: 0.625rem;">Powered by Hyperliquid Python SDK</p>
         </div>
     </div>
 
@@ -339,7 +374,7 @@ DASHBOARD_TEMPLATE = """
                     const tbody = document.getElementById('tradesByCoin');
 
                     if (Object.keys(tradesByCoin).length === 0) {
-                        tbody.innerHTML = '<tr><td colspan="2" style="text-align: center; color: #999;">No trades yet</td></tr>';
+                        tbody.innerHTML = '<tr><td colspan="2" style="text-align: center; color: #9ca3af;">No trades yet</td></tr>';
                     } else {
                         const sorted = Object.entries(tradesByCoin).sort((a, b) => b[1] - a[1]);
                         tbody.innerHTML = sorted.map(([coin, count]) => `
@@ -355,7 +390,7 @@ DASHBOARD_TEMPLATE = """
                     const addressTbody = document.getElementById('recentAddresses');
 
                     if (recentAddresses.length === 0) {
-                        addressTbody.innerHTML = '<tr><td colspan="4" style="text-align: center; color: #999;">No addresses yet</td></tr>';
+                        addressTbody.innerHTML = '<tr><td colspan="4" style="text-align: center; color: #9ca3af;">No addresses yet</td></tr>';
                     } else {
                         addressTbody.innerHTML = recentAddresses.slice(0, 10).map(addr => `
                             <tr>
