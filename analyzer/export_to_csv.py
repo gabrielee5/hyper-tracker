@@ -106,8 +106,8 @@ Examples:
     parser.add_argument(
         '--db-path',
         type=str,
-        default='../data/analyzer/analyzed_traders.db',
-        help='Path to analyzed_traders.db (default: ../data/analyzer/analyzed_traders.db)'
+        default='./data/analyzed_traders.db',
+        help='Path to analyzed_traders.db (default: ./data/analyzed_traders.db)'
     )
 
     parser.add_argument(

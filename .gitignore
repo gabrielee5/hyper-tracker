@@ -43,6 +43,7 @@ data/
 
 # CSV Exports
 analyzer/exports/
+exports/
 
 # Logs - All logs now in main logs/ folder
 fetcher/logs/*.log
@@ -59,3 +60,4 @@ htmlcov/
 phase4_simulator/simulator.log
 phase4_simulator/simulator.db
 services/.caffeinate.pid
+services/.caffeinate-scout.pid
