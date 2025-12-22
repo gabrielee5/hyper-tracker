@@ -165,6 +165,9 @@ class WebDashboard:
 
     def run(self):
         """Run the Flask web server."""
+        # Disable werkzeug request logging
+        logging.getLogger('werkzeug').setLevel(logging.WARNING)
+
         logger.info(f"Starting web dashboard on http://{self.host}:{self.port}")
         self.app.run(host=self.host, port=self.port, debug=False, use_reloader=False)
 
