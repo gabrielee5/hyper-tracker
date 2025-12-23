@@ -162,7 +162,10 @@ class ContrarianDatabase:
                     confidence_score REAL NOT NULL,
 
                     -- Which metric drove the signal
-                    primary_metric TEXT NOT NULL DEFAULT 'count'  -- 'count' or 'size'
+                    primary_metric TEXT NOT NULL DEFAULT 'count',  -- 'count' or 'size'
+
+                    -- Current market price
+                    current_price REAL
                 )
             """)
 
@@ -210,7 +213,35 @@ class ContrarianDatabase:
 
             await db.commit()
 
+            # Run migrations to update existing tables
+            await self._run_migrations(db)
+
         logger.info(f"Contrarian database initialized at {self.db_path}")
+
+    async def _run_migrations(self, db):
+        """
+        Run database migrations to update schema.
+
+        Args:
+            db: Active database connection
+        """
+        # Migration 1: Add current_price column if it doesn't exist
+        try:
+            # Check if current_price column exists
+            async with db.execute("PRAGMA table_info(contrarian_signals)") as cursor:
+                columns = await cursor.fetchall()
+                column_names = [col[1] for col in columns]
+
+                if 'current_price' not in column_names:
+                    logger.info("Running migration: Adding current_price column")
+                    await db.execute("""
+                        ALTER TABLE contrarian_signals
+                        ADD COLUMN current_price REAL
+                    """)
+                    await db.commit()
+                    logger.info("Migration completed: current_price column added")
+        except Exception as e:
+            logger.error(f"Error running migration: {e}")
 
     @asynccontextmanager
     async def _get_connection(self):
@@ -240,8 +271,8 @@ class ContrarianDatabase:
                     long_percentage, short_percentage,
                     long_usd_value, short_usd_value,
                     long_usd_percentage, short_usd_percentage,
-                    confidence_score, primary_metric
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    confidence_score, primary_metric, current_price
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """, (
                 signal['coin'],
                 signal['signal_direction'],
@@ -256,7 +287,8 @@ class ContrarianDatabase:
                 signal.get('long_usd_percentage'),
                 signal.get('short_usd_percentage'),
                 signal['confidence_score'],
-                signal.get('primary_metric', 'count')
+                signal.get('primary_metric', 'count'),
+                signal.get('current_price')
             ))
 
             await db.commit()

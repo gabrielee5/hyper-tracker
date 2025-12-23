@@ -35,6 +35,7 @@ from contrarian.core.signal_generator import (
 )
 from contrarian.core.dashboard import ContrarianDashboard
 from contrarian.core.web_dashboard import WebDashboard
+from contrarian.core.price_fetcher import AsyncPriceFetcher
 
 
 # Setup logging
@@ -82,6 +83,10 @@ class ContrarianEngine:
             rate_limit_period=self.config.api.rate_limit_period,
             timeout=self.config.api.timeout,
             max_retries=self.config.api.max_retries
+        )
+        self.price_fetcher = AsyncPriceFetcher(
+            api_url=self.config.api.base_url,
+            timeout=self.config.api.timeout
         )
         self.aggregator = PositionAggregator(
             min_traders_for_signal=self.config.min_traders_for_signal
@@ -201,7 +206,27 @@ class ContrarianEngine:
 
             logger.info(f"Generated {len(signals)} signals")
 
-            # 6. Enrich signals with change data (before saving)
+            # 6. Fetch current prices for all coins with signals
+            if signals:
+                logger.info("Fetching current prices...")
+                try:
+                    # Get all unique coins from signals
+                    coins = [signal['coin'] for signal in signals]
+                    prices = await self.price_fetcher.get_prices_for_pairs(coins)
+
+                    # Add prices to signals
+                    for signal in signals:
+                        coin = signal['coin']
+                        signal['current_price'] = prices.get(coin)
+                        if signal['current_price']:
+                            logger.debug(f"{coin}: ${signal['current_price']:.2f}")
+                        else:
+                            logger.warning(f"Could not fetch price for {coin}")
+                except Exception as e:
+                    logger.error(f"Error fetching prices: {e}")
+                    # Continue without prices if there's an error
+
+            # 7. Enrich signals with change data (before saving)
             if signals:
                 for signal in signals:
                     # Get previous signal for this coin to calculate changes
@@ -222,7 +247,7 @@ class ContrarianEngine:
                         signal['short_count_change'] = 0
                         signal['confidence_score_change'] = 0
 
-            # 7. Save signals to database
+            # 8. Save signals to database
             if signals:
                 for signal in signals:
                     await self.contrarian_db.save_signal(signal)
@@ -312,6 +337,7 @@ class ContrarianEngine:
         """Clean up resources."""
         logger.info("Cleaning up...")
         await self.position_fetcher.close()
+        await self.price_fetcher.close()
         self.running = False
 
 
