@@ -6,6 +6,7 @@ Beautiful, real-time terminal UI showing good trader positioning and follower si
 
 import logging
 from datetime import datetime
+from zoneinfo import ZoneInfo
 from typing import List, Dict, Optional
 from rich.console import Console
 from rich.live import Live
@@ -488,7 +489,7 @@ if __name__ == "__main__":
         sample_signals,
         277,
         142,
-        datetime.now()
+        datetime.now(ZoneInfo("Europe/Rome"))
     )
 
     print("\n" + "="*80 + "\n")

@@ -11,6 +11,7 @@ import logging
 from typing import List, Dict, Optional
 from aiolimiter import AsyncLimiter
 from datetime import datetime
+from zoneinfo import ZoneInfo
 
 
 logger = logging.getLogger(__name__)
@@ -313,14 +314,16 @@ class FillsCache:
     Cache entries expire after a configurable TTL.
     """
 
-    def __init__(self, ttl_seconds: int = 300):
+    def __init__(self, ttl_seconds: int = 300, timezone: str = "Europe/Rome"):
         """
         Initialize cache.
 
         Args:
             ttl_seconds: Time-to-live for cache entries (default: 5 minutes)
+            timezone: Timezone for datetime operations (default: Europe/Rome)
         """
         self.ttl_seconds = ttl_seconds
+        self.timezone = timezone
         self._cache: Dict[str, tuple[List[Dict], float]] = {}
 
     def get(self, address: str) -> Optional[List[Dict]]:
@@ -337,7 +340,7 @@ class FillsCache:
             return None
 
         fills, timestamp = self._cache[address]
-        age = datetime.now().timestamp() - timestamp
+        age = datetime.now(ZoneInfo(self.timezone)).timestamp() - timestamp
 
         if age > self.ttl_seconds:
             # Expired, remove from cache
@@ -354,7 +357,7 @@ class FillsCache:
             address: Ethereum address
             fills: List of fills to cache
         """
-        self._cache[address] = (fills, datetime.now().timestamp())
+        self._cache[address] = (fills, datetime.now(ZoneInfo(self.timezone)).timestamp())
 
     def clear(self):
         """Clear all cached entries."""

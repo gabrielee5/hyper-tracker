@@ -107,7 +107,8 @@ class ContrarianEngine:
         if self.enable_web:
             self.web_dashboard = WebDashboard(
                 priority_coins=self.config.dashboard.priority_coins,
-                contrarian_db=self.contrarian_db
+                contrarian_db=self.contrarian_db,
+                timezone=self.config.dashboard.timezone
             )
 
         # State
@@ -287,7 +288,7 @@ class ContrarianEngine:
                         self.last_signals,
                         self.bad_traders_count,
                         self.traders_with_positions,
-                        datetime.now()
+                        self.config.get_now()
                     )
 
                     # Also print concise summary

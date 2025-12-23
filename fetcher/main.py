@@ -5,6 +5,7 @@ import signal
 import sys
 import time
 from datetime import datetime
+from zoneinfo import ZoneInfo
 from threading import Thread, Event
 from typing import List
 
@@ -29,13 +30,13 @@ class HyperliquidTracker:
         """
         self.config = config
         self.storage = AddressStorage(config.database_path)
-        self.tracker = AddressTracker(batch_size=config.batch_size, track_role=config.track_role)
+        self.tracker = AddressTracker(batch_size=config.batch_size, track_role=config.track_role, timezone=config.timezone)
         self.connection = HyperliquidConnection(config.api_url)
 
         self.coins_tracked: List[str] = []
         self.is_running = False
         self.stop_event = Event()
-        self.start_time = datetime.now()
+        self.start_time = datetime.now(ZoneInfo(config.timezone))
         self._dashboard_server = None
 
         # Setup signal handlers for graceful shutdown

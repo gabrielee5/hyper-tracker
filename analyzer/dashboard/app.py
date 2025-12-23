@@ -49,7 +49,8 @@ class DashboardApp:
         # Database connection
         self.database = AnalyzerDatabase(
             db_path=str(config.get_phase2_db_absolute_path()),
-            connection_timeout=config.database.connection_timeout
+            connection_timeout=config.database.connection_timeout,
+            timezone=config.dashboard.timezone
         )
 
         # Register routes

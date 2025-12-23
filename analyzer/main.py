@@ -13,6 +13,7 @@ import sys
 from pathlib import Path
 from logging.handlers import RotatingFileHandler
 from datetime import datetime
+from zoneinfo import ZoneInfo
 import argparse
 
 # Add parent directory to path for imports
@@ -70,7 +71,7 @@ def setup_logging(config):
 
     logging.info("=" * 60)
     logging.info("Hyperliquid Trader Analyzer - Phase 2")
-    logging.info(f"Started at: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+    logging.info(f"Started at: {datetime.now(ZoneInfo(config.dashboard.timezone)).strftime('%Y-%m-%d %H:%M:%S')}")
     logging.info("=" * 60)
 
 
@@ -135,9 +136,11 @@ async def run_analyzer(mode: str = 'continuous', limit: int = None):
             logging.info("Shutting down analyzer service...")
             await service_instance.shutdown()
 
+        # Get timezone from config if available, otherwise use default
+        tz = ZoneInfo(config.dashboard.timezone) if 'config' in locals() else ZoneInfo("Europe/Rome")
         logging.info("=" * 60)
         logging.info("Analyzer stopped")
-        logging.info(f"Stopped at: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+        logging.info(f"Stopped at: {datetime.now(tz).strftime('%Y-%m-%d %H:%M:%S')}")
         logging.info("=" * 60)
 
 

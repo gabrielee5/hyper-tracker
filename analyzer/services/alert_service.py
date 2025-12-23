@@ -8,6 +8,7 @@ import json
 import logging
 from pathlib import Path
 from datetime import datetime
+from zoneinfo import ZoneInfo
 from typing import List, Optional
 from collections import deque
 
@@ -20,17 +21,18 @@ logger = logging.getLogger(__name__)
 class Alert:
     """Represents a trader alert."""
 
-    def __init__(self, address: str, metrics: TraderMetrics):
+    def __init__(self, address: str, metrics: TraderMetrics, timezone: str = "Europe/Rome"):
         """
         Create a new alert.
 
         Args:
             address: Trader's Ethereum address
             metrics: TraderMetrics with analysis results
+            timezone: Timezone for timestamp (default: Europe/Rome)
         """
         self.address = address
         self.metrics = metrics
-        self.timestamp = datetime.now()
+        self.timestamp = datetime.now(ZoneInfo(timezone))
 
     def to_dict(self) -> dict:
         """Convert alert to dictionary for serialization."""
@@ -63,7 +65,8 @@ class AlertService:
         console_enabled: bool = True,
         log_file_enabled: bool = True,
         log_file_path: Optional[str] = None,
-        dashboard_enabled: bool = True
+        dashboard_enabled: bool = True,
+        timezone: str = "Europe/Rome"
     ):
         """
         Initialize alert service.
@@ -74,12 +77,14 @@ class AlertService:
             log_file_enabled: Enable log file alerts
             log_file_path: Path to alert log file
             dashboard_enabled: Enable dashboard alerts
+            timezone: Timezone for timestamps (default: Europe/Rome)
         """
         self.score_threshold = score_threshold
         self.console_enabled = console_enabled
         self.log_file_enabled = log_file_enabled
         self.log_file_path = Path(log_file_path) if log_file_path else None
         self.dashboard_enabled = dashboard_enabled
+        self.timezone = timezone
 
         # Recent alerts for dashboard (keep last 100)
         self.recent_alerts: deque = deque(maxlen=100)
@@ -116,7 +121,7 @@ class AlertService:
         if not self.should_alert(metrics):
             return
 
-        alert = Alert(address, metrics)
+        alert = Alert(address, metrics, timezone=self.timezone)
 
         # Store for dashboard
         if self.dashboard_enabled:

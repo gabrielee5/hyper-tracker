@@ -5,6 +5,7 @@ Manages portfolio state, positions, trades, and performance metrics.
 
 import sqlite3
 from datetime import datetime
+from zoneinfo import ZoneInfo
 from typing import Dict, List, Optional, Tuple
 import logging
 
@@ -123,7 +124,7 @@ class SimulatorDatabase:
             (timestamp, total_equity, cash_balance, total_pnl, total_return_pct,
              num_open_positions, total_fees_paid)
             VALUES (?, ?, ?, ?, ?, ?, ?)
-        """, (datetime.utcnow(), equity, cash, pnl, return_pct, num_positions, total_fees))
+        """, (datetime.now(ZoneInfo("Europe/Rome")), equity, cash, pnl, return_pct, num_positions, total_fees))
         self.conn.commit()
 
     def get_latest_portfolio_state(self) -> Optional[Dict]:
@@ -162,7 +163,7 @@ class SimulatorDatabase:
              unrealized_pnl, unrealized_pnl_pct, signal_confidence, total_fees_paid)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """, (pair, direction, entry_price, current_price, entry_size_usd,
-              current_size_usd, quantity, entry_timestamp, datetime.utcnow(),
+              current_size_usd, quantity, entry_timestamp, datetime.now(ZoneInfo("Europe/Rome")),
               unrealized_pnl, unrealized_pnl_pct, signal_confidence, total_fees_paid))
         self.conn.commit()
 
@@ -177,7 +178,7 @@ class SimulatorDatabase:
                 unrealized_pnl_pct = ?, last_updated = ?
             WHERE pair = ?
         """, (current_price, current_size_usd, unrealized_pnl,
-              unrealized_pnl_pct, datetime.utcnow(), pair))
+              unrealized_pnl_pct, datetime.now(ZoneInfo("Europe/Rome")), pair))
         self.conn.commit()
 
     def delete_position(self, pair: str):
@@ -211,7 +212,7 @@ class SimulatorDatabase:
             (timestamp, pair, direction, action, price, quantity, usd_value,
              fees, slippage, signal_confidence, reason, pnl)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """, (datetime.utcnow(), pair, direction, action, price, quantity,
+        """, (datetime.now(ZoneInfo("Europe/Rome")), pair, direction, action, price, quantity,
               usd_value, fees, slippage, signal_confidence, reason, pnl))
         self.conn.commit()
         return cursor.lastrowid
@@ -252,7 +253,7 @@ class SimulatorDatabase:
             (timestamp, num_adjustments, total_fees, portfolio_value_before,
              portfolio_value_after, signals_used)
             VALUES (?, ?, ?, ?, ?, ?)
-        """, (datetime.utcnow(), num_adjustments, total_fees, value_before,
+        """, (datetime.now(ZoneInfo("Europe/Rome")), num_adjustments, total_fees, value_before,
               value_after, signals_used))
         self.conn.commit()
         return cursor.lastrowid
@@ -279,7 +280,7 @@ class SimulatorDatabase:
             (timestamp, total_equity, total_pnl, total_return_pct, sharpe_ratio,
              max_drawdown, win_rate, num_trades, avg_win, avg_loss)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """, (datetime.utcnow(), equity, pnl, return_pct, sharpe_ratio,
+        """, (datetime.now(ZoneInfo("Europe/Rome")), equity, pnl, return_pct, sharpe_ratio,
               max_drawdown, win_rate, num_trades, avg_win, avg_loss))
         self.conn.commit()
 

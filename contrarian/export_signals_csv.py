@@ -11,6 +11,7 @@ import csv
 import sys
 from pathlib import Path
 from datetime import datetime
+from zoneinfo import ZoneInfo
 import argparse
 
 
@@ -288,7 +289,7 @@ Examples:
         if not output_path.is_absolute():
             output_path = data_dir / output_path
     else:
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        timestamp = datetime.now(ZoneInfo("Europe/Rome")).strftime("%Y%m%d_%H%M%S")
         coin_suffix = f"_{args.coin}" if args.coin else ""
         limit_suffix = f"_top{args.limit}" if args.limit else ""
         filename = f"contrarian_{args.type}{coin_suffix}{limit_suffix}_{timestamp}.csv"

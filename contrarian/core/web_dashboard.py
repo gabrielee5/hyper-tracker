@@ -7,6 +7,7 @@ Provides a real-time web interface showing bad trader positioning and contrarian
 import asyncio
 import logging
 from datetime import datetime
+from zoneinfo import ZoneInfo
 from typing import List, Dict, Optional
 from threading import Thread
 from flask import Flask, render_template, jsonify
@@ -31,7 +32,8 @@ class WebDashboard:
         host: str = '127.0.0.1',
         port: int = 5002,
         priority_coins: List[str] = None,
-        contrarian_db = None
+        contrarian_db = None,
+        timezone: str = "Europe/Rome"
     ):
         """
         Initialize web dashboard.
@@ -41,11 +43,13 @@ class WebDashboard:
             port: Port to listen on
             priority_coins: List of coin symbols to display first
             contrarian_db: ContrarianDatabase instance for historical data
+            timezone: Timezone for timestamps (default: Europe/Rome)
         """
         self.host = host
         self.port = port
         self.priority_coins = priority_coins or []
         self.contrarian_db = contrarian_db
+        self.timezone = timezone
 
         # State
         self.signals = []
@@ -88,7 +92,7 @@ class WebDashboard:
             """Health check endpoint."""
             return jsonify({
                 'status': 'ok',
-                'timestamp': datetime.now().isoformat()
+                'timestamp': datetime.now(ZoneInfo(self.timezone)).isoformat()
             })
 
         @self.app.route('/api/confidence-history/<coin>')
@@ -159,7 +163,7 @@ class WebDashboard:
         self.signals = signals
         self.bad_traders_count = bad_traders_count
         self.traders_with_positions = traders_with_positions
-        self.last_update = datetime.now()
+        self.last_update = datetime.now(ZoneInfo(self.timezone))
 
         logger.debug(f"Dashboard data updated: {len(signals)} signals")
 

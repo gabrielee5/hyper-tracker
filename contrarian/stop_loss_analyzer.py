@@ -38,6 +38,7 @@ from aiolimiter import AsyncLimiter
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 from datetime import datetime
+from zoneinfo import ZoneInfo
 
 # Add parent directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -488,7 +489,7 @@ class StopLossAnalyzer:
                 family='monospace')
 
         # Add timestamp
-        timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        timestamp = datetime.now(ZoneInfo("Europe/Rome")).strftime('%Y-%m-%d %H:%M:%S')
         fig.text(0.98, 0.02, f'Generated: {timestamp}',
                 transform=fig.transFigure, fontsize=8,
                 verticalalignment='bottom', horizontalalignment='right',

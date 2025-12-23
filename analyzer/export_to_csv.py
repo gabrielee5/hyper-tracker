@@ -10,6 +10,7 @@ import csv
 import argparse
 from pathlib import Path
 from datetime import datetime
+from zoneinfo import ZoneInfo
 import sys
 
 
@@ -153,8 +154,8 @@ Examples:
     output_dir = Path(args.output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    # Generate timestamp for filenames
-    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+    # Generate timestamp for filenames (using Europe/Rome timezone)
+    timestamp = datetime.now(ZoneInfo("Europe/Rome")).strftime('%Y%m%d_%H%M%S')
 
     print(f"\nExporting from: {db_path}")
     print(f"Output directory: {output_dir}\n")

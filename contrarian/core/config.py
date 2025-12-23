@@ -7,6 +7,8 @@ import logging
 from pathlib import Path
 from typing import Dict, Any
 from dataclasses import dataclass
+from datetime import datetime
+from zoneinfo import ZoneInfo
 
 
 logger = logging.getLogger(__name__)
@@ -45,6 +47,7 @@ class DashboardConfig:
     top_signals_limit: int = 15
     enable_colors: bool = True
     priority_coins: list = None
+    timezone: str = "Europe/Rome"
 
     def __post_init__(self):
         if self.priority_coins is None:
@@ -115,7 +118,8 @@ class ConrarianConfig:
                 "show_size_weighted": True,
                 "top_signals_limit": 15,
                 "enable_colors": True,
-                "priority_coins": []
+                "priority_coins": [],
+                "timezone": "Europe/Rome"
             }
         }
 
@@ -174,7 +178,8 @@ class ConrarianConfig:
             show_size_weighted=dash_config.get("show_size_weighted", True),
             top_signals_limit=dash_config.get("top_signals_limit", 15),
             enable_colors=dash_config.get("enable_colors", True),
-            priority_coins=dash_config.get("priority_coins", [])
+            priority_coins=dash_config.get("priority_coins", []),
+            timezone=dash_config.get("timezone", "Europe/Rome")
         )
 
     def save(self):
@@ -186,6 +191,10 @@ class ConrarianConfig:
             logger.info(f"Configuration saved to {self.config_path}")
         except Exception as e:
             logger.error(f"Failed to save config: {e}")
+
+    def get_now(self) -> datetime:
+        """Get current datetime with configured timezone."""
+        return datetime.now(ZoneInfo(self.dashboard.timezone))
 
     def __repr__(self) -> str:
         return f"ConrarianConfig(path={self.config_path})"

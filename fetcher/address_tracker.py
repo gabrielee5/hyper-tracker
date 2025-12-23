@@ -3,6 +3,7 @@
 import logging
 from typing import List, Dict, Any, Set
 from datetime import datetime
+from zoneinfo import ZoneInfo
 from threading import Lock
 from collections import deque
 
@@ -12,7 +13,7 @@ logger = logging.getLogger(__name__)
 class AddressTracker:
     """Tracks trader addresses from trade events with batch processing."""
 
-    def __init__(self, batch_size: int = 1000, track_role: str = "both"):
+    def __init__(self, batch_size: int = 1000, track_role: str = "both", timezone: str = "Europe/Rome"):
         """
         Initialize the tracker.
 
@@ -20,8 +21,10 @@ class AddressTracker:
             batch_size: Number of addresses to accumulate before flushing
             track_role: DEPRECATED - kept for compatibility, always tracks both addresses
                        (taker/maker cannot be reliably determined from public trade data)
+            timezone: Timezone for datetime operations (default: Europe/Rome)
         """
         self.batch_size = batch_size
+        self.timezone = timezone
         # Note: track_role parameter is ignored - we always track both addresses
         # because the WebSocket 'trades' subscription doesn't include the 'crossed'
         # field needed to distinguish taker from maker
@@ -64,7 +67,7 @@ class AddressTracker:
                 users = trade_data.get("users", [])
                 price = float(trade_data.get("px", 0))
                 size = float(trade_data.get("sz", 0))
-                timestamp = datetime.fromtimestamp(trade_data.get("time", 0) / 1000)
+                timestamp = datetime.fromtimestamp(trade_data.get("time", 0) / 1000, tz=ZoneInfo(self.timezone))
 
                 # Calculate trade value (approximate, may need coin-specific conversion)
                 trade_value_usd = price * size

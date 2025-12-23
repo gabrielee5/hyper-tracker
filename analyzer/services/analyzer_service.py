@@ -58,7 +58,8 @@ class AnalyzerService:
 
         self.database = AnalyzerDatabase(
             db_path=str(config.get_phase2_db_absolute_path()),
-            connection_timeout=config.database.connection_timeout
+            connection_timeout=config.database.connection_timeout,
+            timezone=config.dashboard.timezone
         )
 
         self.phase1_db = Phase1DatabaseReader(
@@ -74,7 +75,8 @@ class AnalyzerService:
             console_enabled=config.alerts.console_enabled,
             log_file_enabled=config.alerts.log_file_enabled,
             log_file_path=str(config.get_alert_log_absolute_path()),
-            dashboard_enabled=config.alerts.dashboard_enabled
+            dashboard_enabled=config.alerts.dashboard_enabled,
+            timezone=config.dashboard.timezone
         )
 
         # Cache for API responses

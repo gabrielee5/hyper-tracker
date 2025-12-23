@@ -212,7 +212,7 @@ class TradingSimulator:
     def rebalance_portfolio(self):
         """Execute portfolio rebalancing logic."""
         logger.info("=" * 80)
-        logger.info(f"REBALANCING PORTFOLIO - {datetime.utcnow().isoformat()}")
+        logger.info(f"REBALANCING PORTFOLIO - {self.config.get_now().isoformat()}")
         logger.info("=" * 80)
 
         try:

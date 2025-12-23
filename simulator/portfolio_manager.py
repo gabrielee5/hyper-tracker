@@ -4,6 +4,7 @@ Portfolio manager for tracking positions and calculating mark-to-market values.
 
 from typing import Dict, List, Optional
 from datetime import datetime
+from zoneinfo import ZoneInfo
 from database import SimulatorDatabase
 from order_executor import OrderExecutor, ExecutionResult
 from price_fetcher import PriceFetcher
@@ -163,7 +164,7 @@ class PortfolioManager:
             entry_price=result.execution_price,
             quantity=result.quantity,
             entry_size_usd=usd_value,
-            entry_timestamp=datetime.utcnow(),
+            entry_timestamp=datetime.now(ZoneInfo("Europe/Rome")),
             signal_confidence=signal_confidence,
             total_fees_paid=result.fees
         )

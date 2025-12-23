@@ -39,6 +39,9 @@ class Config(BaseModel):
     log_level: str = Field(default="INFO")
     log_file: Path = Field(default=Path("logs/tracker.log"))
 
+    # Timezone
+    timezone: str = Field(default="Europe/Rome")
+
     class Config:
         arbitrary_types_allowed = True
 
@@ -84,6 +87,9 @@ class Config(BaseModel):
         # Parse logging
         log_level = os.getenv("LOG_LEVEL", "INFO").upper()
 
+        # Parse timezone
+        timezone = os.getenv("TIMEZONE", "Europe/Rome")
+
         return cls(
             network=network,
             api_url=api_url,
@@ -99,6 +105,7 @@ class Config(BaseModel):
             dashboard_host=dashboard_host,
             log_level=log_level,
             log_file=log_file,
+            timezone=timezone,
         )
 
     def get_coins_to_track(self, available_coins: List[str]) -> List[str]:

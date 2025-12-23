@@ -89,12 +89,14 @@ def calculate_uptime(start_time: datetime) -> str:
     Calculate uptime from start time.
 
     Args:
-        start_time: When the application started
+        start_time: When the application started (timezone-aware datetime)
 
     Returns:
         Formatted uptime string
     """
-    delta = datetime.now() - start_time
+    # Use the same timezone as start_time for consistency
+    current_time = datetime.now(start_time.tzinfo) if start_time.tzinfo else datetime.now()
+    delta = current_time - start_time
     hours, remainder = divmod(delta.seconds, 3600)
     minutes, seconds = divmod(remainder, 60)
 

@@ -5,6 +5,8 @@ Configuration loader for the paper trading simulator.
 import json
 import os
 from typing import Any, Dict
+from datetime import datetime
+from zoneinfo import ZoneInfo
 
 
 class Config:
@@ -119,3 +121,7 @@ class Config:
             else:
                 return default
         return value
+
+    def get_now(self) -> datetime:
+        """Get current datetime with configured timezone."""
+        return datetime.now(ZoneInfo(self.timezone))

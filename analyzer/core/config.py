@@ -61,6 +61,7 @@ class DashboardConfig:
     host: str
     port: int
     auto_refresh_seconds: int
+    timezone: str = "Europe/Rome"
 
 
 @dataclass

@@ -10,6 +10,7 @@ import asyncio
 import logging
 from typing import List, Dict, Optional, Tuple, Set
 from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo
 from pathlib import Path
 from contextlib import asynccontextmanager
 
@@ -27,16 +28,18 @@ class AnalyzerDatabase:
     and stores the results of statistical analysis.
     """
 
-    def __init__(self, db_path: str, connection_timeout: int = 30):
+    def __init__(self, db_path: str, connection_timeout: int = 30, timezone: str = "Europe/Rome"):
         """
         Initialize database connection.
 
         Args:
             db_path: Path to the SQLite database file
             connection_timeout: Database connection timeout in seconds
+            timezone: Timezone for datetime operations (default: Europe/Rome)
         """
         self.db_path = Path(db_path)
         self.connection_timeout = connection_timeout
+        self.timezone = timezone
 
         # Ensure data directory exists
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
@@ -187,7 +190,7 @@ class AnalyzerDatabase:
                 metrics.avg_loss,
                 metrics.account_balance,
                 metrics.first_trade_time,
-                datetime.now().isoformat(),
+                datetime.now(ZoneInfo(self.timezone)).isoformat(),
                 metrics.is_statistically_bad
             ))
 
@@ -314,7 +317,7 @@ class AnalyzerDatabase:
         Returns:
             List of addresses needing re-analysis
         """
-        cutoff_date = (datetime.now() - timedelta(days=days_old)).isoformat()
+        cutoff_date = (datetime.now(ZoneInfo(self.timezone)) - timedelta(days=days_old)).isoformat()
 
         query = """
             SELECT address FROM scored_traders
@@ -514,7 +517,7 @@ class Phase1DatabaseReader:
         Returns:
             List of (address, last_seen) tuples, sorted by most recent
         """
-        cutoff_date = (datetime.now() - timedelta(days=days)).isoformat()
+        cutoff_date = (datetime.now(ZoneInfo(self.timezone)) - timedelta(days=days)).isoformat()
 
         query = """
             SELECT address, last_seen FROM addresses

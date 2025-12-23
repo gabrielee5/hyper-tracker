@@ -446,8 +446,9 @@ def create_dashboard_app(tracker, config):
             db_stats = tracker.storage.get_statistics()
             recent_addresses = tracker.storage.get_recent_addresses(limit=20)
 
-            # Calculate uptime
-            uptime_delta = datetime.now() - tracker.start_time
+            # Calculate uptime (use same timezone as start_time)
+            current_time = datetime.now(tracker.start_time.tzinfo) if tracker.start_time.tzinfo else datetime.now()
+            uptime_delta = current_time - tracker.start_time
             hours, remainder = divmod(uptime_delta.seconds, 3600)
             minutes, seconds = divmod(remainder, 60)
 

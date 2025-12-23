@@ -101,7 +101,8 @@ class FollowerEngine:
         self.web_dashboard = None
         if self.enable_web:
             self.web_dashboard = WebDashboard(
-                priority_coins=self.config.dashboard.priority_coins
+                priority_coins=self.config.dashboard.priority_coins,
+                timezone=self.config.dashboard.timezone
             )
 
         # State
@@ -261,7 +262,7 @@ class FollowerEngine:
                         self.last_signals,
                         self.good_traders_count,
                         self.traders_with_positions,
-                        datetime.now()
+                        self.config.get_now()
                     )
 
                     # Also print concise summary

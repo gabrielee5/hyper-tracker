@@ -31,7 +31,7 @@
   "dashboard": {
     "port": 5003,
     "update_interval_seconds": 1800,
-    "timezone": "UTC"
+    "timezone": "Europe/Rome"
   },
   "logging": {
     "level": "INFO",

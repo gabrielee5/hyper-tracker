@@ -7,6 +7,7 @@ Provides a real-time web interface showing good trader positioning and follower 
 import asyncio
 import logging
 from datetime import datetime
+from zoneinfo import ZoneInfo
 from typing import List, Dict, Optional
 from threading import Thread
 from flask import Flask, render_template, jsonify
@@ -30,7 +31,8 @@ class WebDashboard:
         self,
         host: str = '127.0.0.1',
         port: int = 5005,
-        priority_coins: List[str] = None
+        priority_coins: List[str] = None,
+        timezone: str = "Europe/Rome"
     ):
         """
         Initialize web dashboard.
@@ -39,10 +41,12 @@ class WebDashboard:
             host: Host address to bind to
             port: Port to listen on
             priority_coins: List of coin symbols to display first
+            timezone: Timezone for timestamps (default: Europe/Rome)
         """
         self.host = host
         self.port = port
         self.priority_coins = priority_coins or []
+        self.timezone = timezone
 
         # State
         self.signals = []
@@ -85,7 +89,7 @@ class WebDashboard:
             """Health check endpoint."""
             return jsonify({
                 'status': 'ok',
-                'timestamp': datetime.now().isoformat()
+                'timestamp': datetime.now(ZoneInfo(self.timezone)).isoformat()
             })
 
     def _sort_signals_with_priority(self, signals: List[Dict]) -> List[Dict]:
@@ -133,7 +137,7 @@ class WebDashboard:
         self.signals = signals
         self.good_traders_count = good_traders_count
         self.traders_with_positions = traders_with_positions
-        self.last_update = datetime.now()
+        self.last_update = datetime.now(ZoneInfo(self.timezone))
 
         logger.debug(f"Dashboard data updated: {len(signals)} signals")
 
