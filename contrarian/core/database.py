@@ -366,7 +366,7 @@ class ContrarianDatabase:
 
     async def get_previous_signal(self, coin: str) -> Optional[Dict]:
         """
-        Get the previous signal for a specific coin (second most recent).
+        Get the previous signal for a specific coin (most recent in database).
 
         Args:
             coin: Coin symbol to query
@@ -378,7 +378,7 @@ class ContrarianDatabase:
             SELECT * FROM contrarian_signals
             WHERE coin = ?
             ORDER BY timestamp DESC
-            LIMIT 1 OFFSET 1
+            LIMIT 1
         """
 
         async with self._get_connection() as db:
