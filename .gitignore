@@ -61,3 +61,6 @@ phase4_simulator/simulator.log
 phase4_simulator/simulator.db
 services/.caffeinate.pid
 services/.caffeinate-scout.pid
+
+# others
+bot.txt

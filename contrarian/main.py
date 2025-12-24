@@ -36,6 +36,7 @@ from contrarian.core.signal_generator import (
 from contrarian.core.dashboard import ContrarianDashboard
 from contrarian.core.web_dashboard import WebDashboard
 from contrarian.core.price_fetcher import AsyncPriceFetcher
+from contrarian.core.telegram_bot import TelegramNotifier
 
 
 # Setup logging
@@ -110,6 +111,16 @@ class ContrarianEngine:
                 contrarian_db=self.contrarian_db,
                 timezone=self.config.dashboard.timezone
             )
+
+        # Telegram notifier
+        self.telegram_notifier = None
+        if self.config.telegram.enabled:
+            self.telegram_notifier = TelegramNotifier(
+                bot_token=self.config.telegram.bot_token,
+                chat_id=self.config.telegram.chat_id,
+                watched_coins=self.config.telegram.watched_coins
+            )
+            logger.info("Telegram notifications enabled")
 
         # State
         self.running = False
@@ -301,6 +312,10 @@ class ContrarianEngine:
                             self.bad_traders_count,
                             self.traders_with_positions
                         )
+
+                    # Send Telegram notifications
+                    if self.telegram_notifier:
+                        self.telegram_notifier.send_signals(self.last_signals)
                 else:
                     self.dashboard.print_status(
                         "No signals generated. Waiting for next cycle..."

@@ -4,11 +4,13 @@ Configuration management for contrarian signal system.
 
 import json
 import logging
+import os
 from pathlib import Path
 from typing import Dict, Any
 from dataclasses import dataclass
 from datetime import datetime
 from zoneinfo import ZoneInfo
+from dotenv import load_dotenv
 
 
 logger = logging.getLogger(__name__)
@@ -54,6 +56,19 @@ class DashboardConfig:
             self.priority_coins = []
 
 
+@dataclass
+class TelegramConfig:
+    """Telegram bot settings."""
+    enabled: bool = False
+    bot_token: str = ""
+    chat_id: str = ""
+    watched_coins: list = None
+
+    def __post_init__(self):
+        if self.watched_coins is None:
+            self.watched_coins = []
+
+
 class ConrarianConfig:
     """
     Central configuration for the contrarian signal system.
@@ -73,6 +88,12 @@ class ConrarianConfig:
 
         self.config_path = Path(config_path)
         self._config: Dict[str, Any] = {}
+
+        # Load .env file from contrarian directory
+        env_path = Path(__file__).parent.parent / ".env"
+        if env_path.exists():
+            load_dotenv(env_path)
+            logger.info(f"Loaded environment variables from {env_path}")
 
         self.load()
 
@@ -120,6 +141,10 @@ class ConrarianConfig:
                 "enable_colors": True,
                 "priority_coins": [],
                 "timezone": "Europe/Rome"
+            },
+            "telegram": {
+                "enabled": False,
+                "watched_coins": []
             }
         }
 
@@ -180,6 +205,17 @@ class ConrarianConfig:
             enable_colors=dash_config.get("enable_colors", True),
             priority_coins=dash_config.get("priority_coins", []),
             timezone=dash_config.get("timezone", "Europe/Rome")
+        )
+
+    @property
+    def telegram(self) -> TelegramConfig:
+        """Telegram bot configuration."""
+        tg_config = self._config.get("telegram", {})
+        return TelegramConfig(
+            enabled=tg_config.get("enabled", False),
+            bot_token=os.getenv("TELEGRAM_BOT_TOKEN", ""),
+            chat_id=os.getenv("TELEGRAM_CHAT_ID", ""),
+            watched_coins=tg_config.get("watched_coins", [])
         )
 
     def save(self):
