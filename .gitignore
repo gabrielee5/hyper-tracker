@@ -20,6 +20,9 @@ wheels/
 .installed.cfg
 *.egg
 
+# Jupyter
+.ipynb_checkpoints/
+
 # Virtual environments
 venv/
 env/
