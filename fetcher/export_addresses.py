@@ -3,6 +3,8 @@
 
 import os
 from pathlib import Path
+from datetime import datetime
+from zoneinfo import ZoneInfo
 from config import Config
 from storage import AddressStorage
 
@@ -19,9 +21,16 @@ def main():
     # Initialize storage
     storage = AddressStorage(config.database_path)
 
-    # Export to CSV in main data folder
-    output_file = Path("../data/addresses_export.csv")
-    output_file.parent.mkdir(parents=True, exist_ok=True)
+    # Determine main project directory and exports folder
+    main_dir = script_dir.parent
+    exports_dir = main_dir / "exports"
+
+    # Create exports directory if it doesn't exist
+    exports_dir.mkdir(exist_ok=True)
+
+    # Generate timestamped filename
+    timestamp = datetime.now(ZoneInfo("Europe/Rome")).strftime("%Y%m%d_%H%M%S")
+    output_file = exports_dir / f"addresses_export_{timestamp}.csv"
 
     storage.export_addresses(output_file)
     print(f"✓ Exported addresses to {output_file}")

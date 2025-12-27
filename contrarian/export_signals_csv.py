@@ -279,21 +279,26 @@ Examples:
         show_database_stats(db_path)
         return
 
-    # Determine output directory (data folder)
-    data_dir = db_path.parent  # Same directory as the database
+    # Determine main project directory and exports folder
+    # Go up from script directory to find the main project directory
+    main_dir = script_dir.parent
+    exports_dir = main_dir / "exports"
+
+    # Create exports directory if it doesn't exist
+    exports_dir.mkdir(exist_ok=True)
 
     # Generate output filename if not specified
     if args.output:
         output_path = Path(args.output)
-        # If relative path, put it in data folder
+        # If relative path, put it in exports folder
         if not output_path.is_absolute():
-            output_path = data_dir / output_path
+            output_path = exports_dir / output_path
     else:
         timestamp = datetime.now(ZoneInfo("Europe/Rome")).strftime("%Y%m%d_%H%M%S")
         coin_suffix = f"_{args.coin}" if args.coin else ""
         limit_suffix = f"_top{args.limit}" if args.limit else ""
         filename = f"contrarian_{args.type}{coin_suffix}{limit_suffix}_{timestamp}.csv"
-        output_path = data_dir / filename
+        output_path = exports_dir / filename
 
     print(f"\nExporting from: {db_path}")
 

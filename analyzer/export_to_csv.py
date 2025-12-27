@@ -107,15 +107,15 @@ Examples:
     parser.add_argument(
         '--db-path',
         type=str,
-        default='./data/analyzed_traders.db',
-        help='Path to analyzed_traders.db (default: ./data/analyzed_traders.db)'
+        default='../data/analyzed_traders.db',
+        help='Path to analyzed_traders.db (default: ../data/analyzed_traders.db)'
     )
 
     parser.add_argument(
         '--output-dir',
         type=str,
-        default='./exports',
-        help='Output directory for CSV files (default: ./exports)'
+        default=None,
+        help='Output directory for CSV files (default: exports folder in main directory)'
     )
 
     parser.add_argument(
@@ -134,7 +134,10 @@ Examples:
     args = parser.parse_args()
 
     # Resolve database path
+    script_dir = Path(__file__).parent
     db_path = Path(args.db_path)
+    if not db_path.is_absolute():
+        db_path = script_dir / db_path
 
     # Check if database exists
     if not db_path.exists():
@@ -150,8 +153,17 @@ Examples:
             print(f"  - {table}")
         sys.exit(0)
 
+    # Determine main project directory and exports folder
+    main_dir = script_dir.parent
+
     # Create output directory
-    output_dir = Path(args.output_dir)
+    if args.output_dir:
+        output_dir = Path(args.output_dir)
+        if not output_dir.is_absolute():
+            output_dir = main_dir / output_dir
+    else:
+        output_dir = main_dir / "exports"
+
     output_dir.mkdir(parents=True, exist_ok=True)
 
     # Generate timestamp for filenames (using Europe/Rome timezone)
