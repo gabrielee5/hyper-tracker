@@ -20,15 +20,15 @@ class PerformanceTracker:
         self.starting_capital = starting_capital
         logger.info("Performance tracker initialized")
 
-    def calculate_sharpe_ratio(self, periods: int = 30) -> Optional[float]:
+    def calculate_sharpe_ratio(self, periods: int = None) -> Optional[float]:
         """
-        Calculate Sharpe ratio using rolling period returns.
+        Calculate Sharpe ratio using portfolio equity variations.
 
         Args:
-            periods: Number of periods to look back (default 30 days)
+            periods: Number of periods to look back (default None = all history)
 
         Returns:
-            Annualized Sharpe ratio or None if insufficient data
+            Sharpe ratio or None if insufficient data
         """
         try:
             equity_curve = self.db.get_equity_curve()
@@ -36,32 +36,36 @@ class PerformanceTracker:
             if len(equity_curve) < 2:
                 return None
 
-            # Calculate daily returns
+            # Calculate returns based on equity variations
             returns = []
             for i in range(1, len(equity_curve)):
                 prev_value = equity_curve[i-1][1]
                 curr_value = equity_curve[i][1]
                 if prev_value > 0:
-                    daily_return = (curr_value - prev_value) / prev_value
-                    returns.append(daily_return)
+                    period_return = (curr_value - prev_value) / prev_value
+                    returns.append(period_return)
 
-            if len(returns) < periods:
-                logger.debug(f"Insufficient data for Sharpe ratio: {len(returns)} < {periods}")
+            if len(returns) < 2:
+                logger.debug(f"Insufficient data for Sharpe ratio: {len(returns)} < 2")
                 return None
 
-            # Use most recent 'periods' returns
-            recent_returns = returns[-periods:]
+            # Use all returns or limit to recent periods if specified
+            if periods is not None and len(returns) > periods:
+                returns_to_use = returns[-periods:]
+            else:
+                returns_to_use = returns
 
-            mean_return = np.mean(recent_returns)
-            std_return = np.std(recent_returns)
+            mean_return = np.mean(returns_to_use)
+            std_return = np.std(returns_to_use, ddof=1)
 
             if std_return == 0:
                 return 0.0
 
-            # Annualize (assume 365 trading days)
-            sharpe = (mean_return / std_return) * np.sqrt(365)
+            # Calculate Sharpe ratio (not annualized) assuming risk-free rate of 10%
+            sharpe = (mean_return - 0.1)/ std_return
 
-            logger.debug(f"Sharpe ratio: {sharpe:.2f} ({periods}-period)")
+            period_text = f"{len(returns_to_use)}-period" if periods else "all history"
+            logger.debug(f"Sharpe ratio: {sharpe:.4f} ({period_text})")
             return sharpe
 
         except Exception as e:
@@ -201,7 +205,7 @@ class PerformanceTracker:
         return_pct = ((current_equity - self.starting_capital) /
                      self.starting_capital * 100)
 
-        sharpe_ratio = self.calculate_sharpe_ratio(periods=30)
+        sharpe_ratio = self.calculate_sharpe_ratio()  # Uses all history
         max_drawdown = self.calculate_max_drawdown()
         win_rate = self.calculate_win_rate()
         avg_win, avg_loss = self.calculate_avg_win_loss()
