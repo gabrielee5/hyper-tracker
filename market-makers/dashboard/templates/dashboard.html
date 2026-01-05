@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Market Maker Position Monitor</title>
+    <style>
+        /* Parse.bot Design System - Base Setup */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html {
+            font-size: 14px;
+        }
+
+        body {
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
+            background: #fff;
+            color: #000;
+            line-height: 1.5;
+            min-height: 100vh;
+            padding: 2.5rem 1.25rem;
+        }
+
+        button, a, input, select, .card, .badge, .stat-box, tbody tr {
+            transition: all 0.15s;
+        }
+
+        /* Container */
+        .container {
+            max-width: 80rem;
+            margin: 0 auto;
+        }
+
+        /* Header */
+        header {
+            background: #fff;
+            border: 0.85px solid #e5e7eb;
+            padding: 1.25rem;
+            margin-bottom: 1.25rem;
+        }
+
+        h1 {
+            font-size: 2.25rem;
+            font-weight: 600;
+            line-height: 2.5rem;
+            margin-bottom: 0.625rem;
+        }
+
+        .subtitle {
+            font-size: 1rem;
+            color: #6b7280;
+        }
+
+        .update-time {
+            color: #6b7280;
+            font-size: 0.75rem;
+            margin-top: 0.625rem;
+        }
+
+        /* Stats Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 1.25rem;
+            margin-bottom: 1.25rem;
+        }
+
+        .stat-box {
+            padding: 1.25rem;
+            background: #fff;
+            border: 0.85px solid #e5e7eb;
+        }
+
+        .stat-box:hover {
+            border-color: #9ca3af;
+        }
+
+        .stat-label {
+            font-size: 0.75rem;
+            color: #6b7280;
+            text-transform: uppercase;
+            letter-spacing: 0.025em;
+            margin-bottom: 0.625rem;
+        }
+
+        .stat-value {
+            font-size: 1.875rem;
+            font-weight: 600;
+            line-height: 2.25rem;
+        }
+
+        /* Card */
+        .card {
+            background: #fff;
+            border: 0.85px solid #e5e7eb;
+            padding: 1.25rem;
+            margin-bottom: 1.25rem;
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.25rem;
+            padding-bottom: 1.25rem;
+            border-bottom: 0.85px solid #e5e7eb;
+        }
+
+        .card-title {
+            font-size: 1.125rem;
+            font-weight: 600;
+        }
+
+        /* Button */
+        .btn-primary {
+            background: #000;
+            color: #fff;
+            border: none;
+            padding: 0.625rem 1.25rem;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 0.875rem;
+        }
+
+        .btn-primary:hover {
+            background: #374151;
+        }
+
+        /* Table */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        thead {
+            background: #f9fafb;
+            border-bottom: 0.85px solid #e5e7eb;
+        }
+
+        th {
+            padding: 0.9375rem 1.25rem;
+            text-align: left;
+            font-size: 0.75rem;
+            font-weight: 500;
+            color: #6b7280;
+            text-transform: uppercase;
+            letter-spacing: 0.025em;
+        }
+
+        th.right-align {
+            text-align: right;
+        }
+
+        td {
+            padding: 1.25rem;
+            border-bottom: 0.85px solid #e5e7eb;
+            font-size: 0.875rem;
+        }
+
+        td.right-align {
+            text-align: right;
+        }
+
+        tbody tr:hover {
+            background: #f9fafb;
+            cursor: pointer;
+        }
+
+        tbody tr:last-child td {
+            border-bottom: none;
+        }
+
+        /* Coin name */
+        .coin-name {
+            font-weight: 600;
+            color: #000;
+        }
+
+        /* Badges */
+        .badge {
+            display: inline-block;
+            padding: 0.125rem 0.625rem;
+            font-size: 0.75rem;
+            font-weight: 500;
+            border: 0.85px solid;
+        }
+
+        .badge-bullish-strong {
+            background: #f0fdf4;
+            color: #166534;
+            border-color: #bbf7d0;
+        }
+
+        .badge-bullish-moderate {
+            background: #f0fdf4;
+            color: #166534;
+            border-color: #bbf7d0;
+        }
+
+        .badge-bullish-weak {
+            background: #f0fdf4;
+            color: #166534;
+            border-color: #bbf7d0;
+        }
+
+        .badge-bearish-strong {
+            background: #fef2f2;
+            color: #991b1b;
+            border-color: #fecaca;
+        }
+
+        .badge-bearish-moderate {
+            background: #fef2f2;
+            color: #991b1b;
+            border-color: #fecaca;
+        }
+
+        .badge-bearish-weak {
+            background: #fef2f2;
+            color: #991b1b;
+            border-color: #fecaca;
+        }
+
+        .badge-neutral-weak {
+            background: #f9fafb;
+            color: #6b7280;
+            border-color: #e5e7eb;
+        }
+
+        .badge-neutral-moderate {
+            background: #f9fafb;
+            color: #6b7280;
+            border-color: #e5e7eb;
+        }
+
+        .badge-neutral-strong {
+            background: #f9fafb;
+            color: #6b7280;
+            border-color: #e5e7eb;
+        }
+
+        /* Bias Bar */
+        .bias-bar {
+            display: flex;
+            height: 1.25rem;
+            background: #f9fafb;
+            border: 0.85px solid #e5e7eb;
+            overflow: hidden;
+        }
+
+        .bias-bar-long {
+            background: #22c55e;
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            padding: 0 0.375rem;
+            color: #fff;
+            font-size: 0.625rem;
+            font-weight: 600;
+        }
+
+        .bias-bar-short {
+            background: #ef4444;
+            display: flex;
+            align-items: center;
+            justify-content: flex-start;
+            padding: 0 0.375rem;
+            color: #fff;
+            font-size: 0.625rem;
+            font-weight: 600;
+        }
+
+        /* Loading state */
+        .loading {
+            text-align: center;
+            padding: 2rem;
+            color: #6b7280;
+        }
+
+        /* Empty state */
+        .empty-state {
+            text-align: center;
+            padding: 2rem;
+            color: #6b7280;
+        }
+
+        /* Price display */
+        .price {
+            color: #6b7280;
+            font-size: 0.75rem;
+        }
+
+        /* Mobile responsive */
+        @media (max-width: 640px) {
+            body {
+                padding: 1.25rem;
+            }
+
+            h1 {
+                font-size: 1.5rem;
+                line-height: 2rem;
+            }
+
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+
+            table {
+                font-size: 0.75rem;
+            }
+
+            th, td {
+                padding: 0.625rem;
+            }
+
+            .bias-bar {
+                min-width: 100px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header>
+            <h1>Market Maker Position Monitor</h1>
+            <p class="subtitle">Real-time tracking of market maker positions and directional bias</p>
+            <div class="update-time" id="updateTime">Initializing...</div>
+        </header>
+
+        <!-- Stats Grid -->
+        <div class="stats-grid">
+            <div class="stat-box">
+                <div class="stat-label">Total Market Makers</div>
+                <div class="stat-value" id="totalMMs">--</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-label">Total Position Value</div>
+                <div class="stat-value" id="totalValue">--</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-label">Assets Tracked</div>
+                <div class="stat-value" id="assetCount">--</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-label">Active MMs (24h)</div>
+                <div class="stat-value" id="activeMMs">--</div>
+            </div>
+        </div>
+
+        <!-- Asset Bias Table -->
+        <div class="card">
+            <div class="card-header">
+                <h2 class="card-title">Asset Bias Overview</h2>
+                <button class="btn-primary" onclick="refreshData()">Refresh</button>
+            </div>
+            <table id="biasTable">
+                <thead>
+                    <tr>
+                        <th>ASSET</th>
+                        <th>MMS</th>
+                        <th class="right-align">LONG VALUE</th>
+                        <th class="right-align">SHORT VALUE</th>
+                        <th class="right-align">NET BIAS</th>
+                        <th class="right-align">BIAS %</th>
+                        <th>DIRECTION</th>
+                        <th style="min-width: 150px;">VISUAL</th>
+                    </tr>
+                </thead>
+                <tbody id="biasTableBody">
+                    <tr>
+                        <td colspan="8" class="loading">
+                            Loading data...
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        // Configuration
+        const AUTO_REFRESH_INTERVAL = 30000; // 30 seconds
+        const TIMEZONE = '{{ timezone }}';
+        let refreshTimer;
+
+        // Fetch and update data
+        async function refreshData() {
+            try {
+                const response = await fetch('/api/data');
+                const data = await response.json();
+
+                updateStats(data.stats);
+                updateBiasTable(data.bias_data);
+
+                // Update timestamp
+                const now = new Date();
+                const options = {
+                    timeZone: TIMEZONE,
+                    year: 'numeric',
+                    month: '2-digit',
+                    day: '2-digit',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    second: '2-digit',
+                    hour12: false
+                };
+                document.getElementById('updateTime').textContent =
+                    `Last updated: ${now.toLocaleString('it-IT', options)}`;
+            } catch (error) {
+                console.error('Error fetching data:', error);
+                document.getElementById('updateTime').textContent =
+                    'Error updating data';
+            }
+        }
+
+        function updateStats(stats) {
+            document.getElementById('totalMMs').textContent =
+                stats.total_mm_count || '--';
+            document.getElementById('activeMMs').textContent =
+                stats.active_mm_count || '--';
+            document.getElementById('assetCount').textContent =
+                stats.asset_count || '--';
+
+            const totalValue = stats.total_position_value || 0;
+            document.getElementById('totalValue').textContent =
+                totalValue > 0 ? `$${formatNumber(totalValue)}` : '--';
+        }
+
+        function updateBiasTable(biasData) {
+            const tbody = document.getElementById('biasTableBody');
+
+            if (!biasData || biasData.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="8" class="empty-state">
+                            No bias data available. Waiting for market makers to be detected...
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            tbody.innerHTML = biasData.map(bias => {
+                const badgeClass = getBadgeClass(bias.direction, bias.strength);
+                const longPct = (bias.long_value_usd / bias.total_value_usd) * 100;
+                const shortPct = (bias.short_value_usd / bias.total_value_usd) * 100;
+
+                const priceDisplay = bias.current_price
+                    ? `<div class="price">$${formatPrice(bias.current_price)}</div>`
+                    : '';
+
+                return `
+                    <tr>
+                        <td>
+                            <span class="coin-name">${bias.coin}</span>
+                            ${priceDisplay}
+                        </td>
+                        <td>${bias.mm_count}</td>
+                        <td class="right-align">$${formatNumber(bias.long_value_usd)}</td>
+                        <td class="right-align">$${formatNumber(bias.short_value_usd)}</td>
+                        <td class="right-align">${formatBias(bias.net_bias_usd)}</td>
+                        <td class="right-align">${bias.bias_percentage.toFixed(1)}%</td>
+                        <td><span class="badge ${badgeClass}">${bias.direction} ${bias.strength}</span></td>
+                        <td>
+                            <div class="bias-bar">
+                                <div class="bias-bar-long" style="width: ${longPct}%">
+                                    ${longPct > 15 ? longPct.toFixed(0) + '%' : ''}
+                                </div>
+                                <div class="bias-bar-short" style="width: ${shortPct}%">
+                                    ${shortPct > 15 ? shortPct.toFixed(0) + '%' : ''}
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function getBadgeClass(direction, strength) {
+            const dir = direction.toLowerCase();
+            const str = strength.toLowerCase();
+            return `badge-${dir}-${str}`;
+        }
+
+        function formatNumber(num) {
+            if (num >= 1000000) {
+                return (num / 1000000).toFixed(2) + 'M';
+            } else if (num >= 1000) {
+                return (num / 1000).toFixed(2) + 'K';
+            }
+            return num.toFixed(2);
+        }
+
+        function formatPrice(price) {
+            if (price >= 1000) {
+                return price.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+            } else if (price >= 1) {
+                return price.toFixed(2);
+            } else {
+                return price.toFixed(4);
+            }
+        }
+
+        function formatBias(bias) {
+            const prefix = bias >= 0 ? '+' : '';
+            return prefix + '$' + formatNumber(Math.abs(bias));
+        }
+
+        // Initialize
+        refreshData();
+        refreshTimer = setInterval(refreshData, AUTO_REFRESH_INTERVAL);
+
+        // Cleanup on page unload
+        window.addEventListener('beforeunload', () => {
+            if (refreshTimer) {
+                clearInterval(refreshTimer);
+            }
+        });
+    </script>
+</body>
+</html>
