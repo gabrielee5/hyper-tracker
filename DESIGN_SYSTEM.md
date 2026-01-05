@@ -1,7 +1,7 @@
-# Parse.bot Design System
+# Fabietti Corp. Design System
 ## Minimalist Dashboard Styling Guide
 
-This design system replicates the clean, brutalist aesthetic of Parse.bot for building consistent, professional dashboards.
+This design system replicates the clean, brutalist aesthetic of Fabietti Corp. for building consistent, professional dashboards.
 
 ---
 
@@ -99,7 +99,7 @@ Use sparingly, only for status indicators:
 ```css
 border-width: 0.85px;
 ```
-**Always use 0.85px** - this is Parse.bot's signature thin border
+**Always use 0.85px** - this is Fabietti Corp.'s signature thin border
 
 ### Border Radius
 ```css
@@ -630,4 +630,4 @@ When building a dashboard with this design system:
 }
 ```
 
-This design system ensures all dashboards in your project maintain the same clean, brutalist, Parse.bot-inspired aesthetic.
+This design system ensures all dashboards in your project maintain the same clean, brutalist, Fabietti Corp.-inspired aesthetic.
