@@ -460,6 +460,19 @@
             </div>
         </div>
 
+        <!-- Market Makers Section -->
+        <div class="panel" style="margin-top: 1rem;">
+            <h2 style="font-size: 1.1rem; margin-bottom: 0.75rem; color: #2563eb;">
+                🏦 Identified Market Makers
+                <span id="mm-count" style="font-size: 0.9rem; color: #6b7280;"></span>
+            </h2>
+            <div id="market-makers-list" style="display: flex; flex-direction: column; gap: 0.5rem;">
+                <div style="color: #9ca3af; text-align: center; padding: 2rem;">
+                    Loading market makers...
+                </div>
+            </div>
+        </div>
+
         <!-- Trader Detail Modal -->
         <div class="trader-detail" id="trader-detail">
             <div class="trader-detail-content">
@@ -666,6 +679,93 @@
             document.getElementById('trader-detail').classList.remove('active');
         }
 
+        async function openMarketMakerDetail(address) {
+            const modal = document.getElementById('trader-detail');
+            const body = document.getElementById('trader-detail-body');
+
+            modal.classList.add('active');
+            body.innerHTML = '<div class="loading">Loading market maker data...</div>';
+
+            const mm = await fetchData('market-maker/' + address);
+
+            if (!mm || mm.error) {
+                body.innerHTML = '<div class="no-data">Market maker not found or error loading data</div>';
+                return;
+            }
+
+            const firstTradeDate = new Date(mm.first_trade_time);
+            const firstDetectedDate = new Date(mm.first_detected);
+            const lastSeenDate = new Date(mm.last_seen);
+
+            body.innerHTML = `
+                <h2 style="color: #2563eb;">🏦 Market Maker Details</h2>
+                <div style="font-family: inherit; color: #6b7280; font-size: 0.875rem; margin-bottom: 1.25rem; word-break: break-all;">${address}</div>
+
+                <div class="detail-section">
+                    <h3>Account Information</h3>
+                    <div class="metric-grid">
+                        <div class="metric-box">
+                            <div class="metric-label">Account Balance</div>
+                            <div class="metric-value positive" style="font-weight: 600;">
+                                ${formatMoney(mm.account_balance)}
+                            </div>
+                        </div>
+                        <div class="metric-box">
+                            <div class="metric-label">Trade Count</div>
+                            <div class="metric-value">${mm.trade_count}</div>
+                        </div>
+                        ${mm.total_volume_usd ? `
+                        <div class="metric-box">
+                            <div class="metric-label">Total Volume</div>
+                            <div class="metric-value">${formatMoney(mm.total_volume_usd)}</div>
+                        </div>
+                        ` : ''}
+                    </div>
+                </div>
+
+                <div class="detail-section">
+                    <h3>Activity Timeline</h3>
+                    <div class="metric-grid">
+                        <div class="metric-box">
+                            <div class="metric-label">First Trade</div>
+                            <div class="metric-value" style="font-size: 0.875rem;">
+                                ${firstTradeDate.toLocaleString()}
+                            </div>
+                        </div>
+                        <div class="metric-box">
+                            <div class="metric-label">Trade Age</div>
+                            <div class="metric-value">${mm.first_trade_age_hours.toFixed(1)} hours</div>
+                        </div>
+                        <div class="metric-box">
+                            <div class="metric-label">First Detected</div>
+                            <div class="metric-value" style="font-size: 0.875rem;">
+                                ${firstDetectedDate.toLocaleString()}
+                            </div>
+                        </div>
+                        <div class="metric-box">
+                            <div class="metric-label">Last Seen</div>
+                            <div class="metric-value" style="font-size: 0.875rem;">
+                                ${lastSeenDate.toLocaleString()}
+                            </div>
+                        </div>
+                        <div class="metric-box">
+                            <div class="metric-label">Detection Count</div>
+                            <div class="metric-value">${mm.detection_count}×</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="margin-top: 1rem; padding: 0.75rem; background: #eff6ff; border-left: 3px solid #3b82f6; border-radius: 0.25rem;">
+                    <div style="font-size: 0.85rem; color: #1e40af;">
+                        <strong>Market Maker Criteria:</strong><br>
+                        ✓ ${mm.trade_count} trades (API limit = 2000)<br>
+                        ✓ First trade ${mm.first_trade_age_hours.toFixed(1)}h ago (< 24h)<br>
+                        ✓ Balance ${formatMoney(mm.account_balance)} (> $50,000)
+                    </div>
+                </div>
+            `;
+        }
+
         // Close modal when clicking outside
         document.getElementById('trader-detail').addEventListener('click', function(e) {
             if (e.target === this) {
@@ -796,12 +896,65 @@
             `).join('');
         }
 
+        async function updateMarketMakers() {
+            const marketMakers = await fetchData('market-makers');
+            if (!marketMakers) return;
+
+            const listElement = document.getElementById('market-makers-list');
+            const countElement = document.getElementById('mm-count');
+
+            if (countElement) {
+                countElement.textContent = `(${marketMakers.length} found)`;
+            }
+
+            if (marketMakers.length === 0) {
+                listElement.innerHTML = `
+                    <div style="color: #9ca3af; text-align: center; padding: 2rem;">
+                        No market makers detected yet
+                    </div>
+                `;
+                return;
+            }
+
+            listElement.innerHTML = marketMakers.map(mm => {
+                const lastSeenDate = new Date(mm.last_seen);
+                const detectionBadge = mm.detection_count > 1
+                    ? `<span style="background: #3b82f6; color: white; padding: 0.15rem 0.4rem; border-radius: 0.25rem; font-size: 0.75rem; margin-left: 0.5rem;">×${mm.detection_count}</span>`
+                    : '';
+
+                return `
+                    <div class="trader-item" style="cursor: pointer;" onclick="openMarketMakerDetail('${mm.address}')">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <div>
+                                <span style="font-family: monospace; color: #3b82f6;">
+                                    ${shortenAddress(mm.address)}
+                                </span>
+                                ${detectionBadge}
+                            </div>
+                            <div style="text-align: right; font-size: 0.9rem;">
+                                <div style="color: #22c55e; font-weight: 600;">
+                                    $${formatNumber(mm.account_balance)}
+                                </div>
+                                <div style="color: #9ca3af; font-size: 0.85rem;">
+                                    ${mm.trade_count} trades in ${mm.first_trade_age_hours.toFixed(1)}h
+                                </div>
+                            </div>
+                        </div>
+                        <div style="margin-top: 0.25rem; font-size: 0.8rem; color: #6b7280;">
+                            Last seen: ${lastSeenDate.toLocaleString()}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
         async function updateAll() {
             await Promise.all([
                 updateStats(),
                 updateAlerts(),
                 updateDistribution(),
-                updateWorstTraders()
+                updateWorstTraders(),
+                updateMarketMakers()
             ]);
 
             document.getElementById('last-update').textContent = new Date().toLocaleTimeString();

@@ -126,6 +126,35 @@ class DashboardApp:
             finally:
                 loop.close()
 
+        @self.app.route('/api/market-makers')
+        def get_market_makers():
+            """Get list of identified market makers."""
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            try:
+                market_makers = loop.run_until_complete(
+                    self.database.get_market_makers(limit=20)
+                )
+                return jsonify(market_makers)
+            finally:
+                loop.close()
+
+        @self.app.route('/api/market-maker/<address>')
+        def get_market_maker(address):
+            """Get detailed information for a specific market maker."""
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            try:
+                market_maker = loop.run_until_complete(
+                    self.database.get_market_maker(address)
+                )
+                if market_maker:
+                    return jsonify(market_maker)
+                else:
+                    return jsonify({'error': 'Market maker not found'}), 404
+            finally:
+                loop.close()
+
     def run(self):
         """Run the Flask app."""
         logger.info(
