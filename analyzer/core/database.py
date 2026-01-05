@@ -609,14 +609,16 @@ class Phase1DatabaseReader:
     This class ensures we never modify Phase 1 data.
     """
 
-    def __init__(self, db_path: str):
+    def __init__(self, db_path: str, timezone: str = "UTC"):
         """
         Initialize Phase 1 database reader.
 
         Args:
             db_path: Path to Phase 1 addresses.db
+            timezone: Timezone for datetime operations (default: UTC)
         """
         self.db_path = Path(db_path)
+        self.timezone = timezone
 
         if not self.db_path.exists():
             logger.warning(f"Phase 1 database not found at {self.db_path}")

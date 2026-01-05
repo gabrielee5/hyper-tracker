@@ -63,7 +63,8 @@ class AnalyzerService:
         )
 
         self.phase1_db = Phase1DatabaseReader(
-            db_path=str(config.get_phase1_db_absolute_path())
+            db_path=str(config.get_phase1_db_absolute_path()),
+            timezone=config.dashboard.timezone
         )
 
         self.phase2_db_reader = AnalyzerDatabaseReader(

@@ -463,7 +463,7 @@
         <!-- Market Makers Section -->
         <div class="panel" style="margin-top: 1rem;">
             <h2 style="font-size: 1.1rem; margin-bottom: 0.75rem; color: #2563eb;">
-                🏦 Identified Market Makers
+                Identified Market Makers
                 <span id="mm-count" style="font-size: 0.9rem; color: #6b7280;"></span>
             </h2>
             <div id="market-makers-list" style="display: flex; flex-direction: column; gap: 0.5rem;">
@@ -489,7 +489,7 @@
     </div>
 
     <script>
-        const REFRESH_INTERVAL = {{ refresh_seconds }} * 1000;
+        const REFRESH_INTERVAL = {{ refresh_seconds | int }} * 1000;
 
         async function fetchData(endpoint) {
             try {
