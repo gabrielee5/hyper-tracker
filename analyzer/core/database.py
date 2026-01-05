@@ -99,6 +99,27 @@ class AnalyzerDatabase:
                 )
             """)
 
+            # Market makers table
+            await db.execute("""
+                CREATE TABLE IF NOT EXISTS market_makers (
+                    address TEXT PRIMARY KEY,
+
+                    -- Market maker specific metrics
+                    trade_count INTEGER NOT NULL,
+                    account_balance REAL NOT NULL,
+                    first_trade_time INTEGER NOT NULL,
+                    first_trade_age_hours REAL NOT NULL,
+
+                    -- Additional data
+                    total_volume_usd REAL,
+
+                    -- Metadata
+                    first_detected TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    last_seen TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    detection_count INTEGER NOT NULL DEFAULT 1
+                )
+            """)
+
             # Create indexes
             await db.execute("""
                 CREATE INDEX IF NOT EXISTS idx_score
@@ -119,6 +140,16 @@ class AnalyzerDatabase:
             await db.execute("""
                 CREATE INDEX IF NOT EXISTS idx_log_timestamp
                 ON analysis_log(timestamp)
+            """)
+
+            await db.execute("""
+                CREATE INDEX IF NOT EXISTS idx_mm_balance
+                ON market_makers(account_balance)
+            """)
+
+            await db.execute("""
+                CREATE INDEX IF NOT EXISTS idx_mm_last_seen
+                ON market_makers(last_seen)
             """)
 
             await db.commit()
@@ -221,6 +252,56 @@ class AnalyzerDatabase:
             """, (address, status, trades_fetched, error_message))
 
             await db.commit()
+
+    async def save_market_maker(
+        self,
+        address: str,
+        trade_count: int,
+        account_balance: float,
+        first_trade_time: int,
+        first_trade_age_hours: float,
+        total_volume_usd: Optional[float] = None
+    ):
+        """
+        Save or update market maker information.
+
+        Args:
+            address: Trader's Ethereum address
+            trade_count: Number of trades (should be 2000)
+            account_balance: Account balance in USD
+            first_trade_time: Timestamp (ms) of first trade
+            first_trade_age_hours: Age of first trade in hours
+            total_volume_usd: Total trading volume (optional)
+        """
+        async with self._get_connection() as db:
+            await db.execute("""
+                INSERT INTO market_makers (
+                    address, trade_count, account_balance, first_trade_time,
+                    first_trade_age_hours, total_volume_usd, first_detected,
+                    last_seen, detection_count
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1)
+                ON CONFLICT(address) DO UPDATE SET
+                    trade_count = excluded.trade_count,
+                    account_balance = excluded.account_balance,
+                    first_trade_time = excluded.first_trade_time,
+                    first_trade_age_hours = excluded.first_trade_age_hours,
+                    total_volume_usd = excluded.total_volume_usd,
+                    last_seen = excluded.last_seen,
+                    detection_count = detection_count + 1
+            """, (
+                address,
+                trade_count,
+                account_balance,
+                first_trade_time,
+                first_trade_age_hours,
+                total_volume_usd,
+                datetime.now(ZoneInfo(self.timezone)).isoformat(),
+                datetime.now(ZoneInfo(self.timezone)).isoformat()
+            ))
+
+            await db.commit()
+
+        logger.debug(f"Saved market maker: {self._shorten_address(address)}")
 
     async def get_trader_analysis(self, address: str) -> Optional[Dict]:
         """
@@ -447,6 +528,67 @@ class AnalyzerDatabase:
             """, (limit,)) as cursor:
                 rows = await cursor.fetchall()
                 return [self._row_to_dict(cursor, row) for row in rows]
+
+    async def get_market_makers(self, limit: Optional[int] = None) -> List[Dict]:
+        """
+        Get all market makers, ordered by most recently seen.
+
+        Args:
+            limit: Maximum number of market makers to return
+
+        Returns:
+            List of market maker dictionaries
+        """
+        async with self._get_connection() as db:
+            if limit:
+                async with db.execute("""
+                    SELECT * FROM market_makers
+                    ORDER BY last_seen DESC
+                    LIMIT ?
+                """, (limit,)) as cursor:
+                    rows = await cursor.fetchall()
+                    return [self._row_to_dict(cursor, row) for row in rows]
+            else:
+                async with db.execute("""
+                    SELECT * FROM market_makers
+                    ORDER BY last_seen DESC
+                """) as cursor:
+                    rows = await cursor.fetchall()
+                    return [self._row_to_dict(cursor, row) for row in rows]
+
+    async def get_market_maker(self, address: str) -> Optional[Dict]:
+        """
+        Get market maker information for a specific address.
+
+        Args:
+            address: Trader's Ethereum address
+
+        Returns:
+            Dictionary with market maker information, or None if not found
+        """
+        async with self._get_connection() as db:
+            async with db.execute("""
+                SELECT * FROM market_makers WHERE address = ?
+            """, (address,)) as cursor:
+                row = await cursor.fetchone()
+
+                if row:
+                    return self._row_to_dict(cursor, row)
+                return None
+
+    async def get_market_maker_count(self) -> int:
+        """
+        Get total count of identified market makers.
+
+        Returns:
+            Number of market makers in database
+        """
+        async with self._get_connection() as db:
+            async with db.execute("""
+                SELECT COUNT(*) FROM market_makers
+            """) as cursor:
+                row = await cursor.fetchone()
+                return row[0] if row else 0
 
     def _row_to_dict(self, cursor, row) -> Dict:
         """Convert database row to dictionary."""

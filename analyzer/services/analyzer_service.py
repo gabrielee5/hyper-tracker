@@ -88,7 +88,8 @@ class AnalyzerService:
             'successful': 0,
             'insufficient_data': 0,
             'api_errors': 0,
-            'alerts_triggered': 0
+            'alerts_triggered': 0,
+            'market_makers_detected': 0
         }
 
         # Running state
@@ -128,6 +129,50 @@ class AnalyzerService:
 
             # Check if sufficient data
             if len(fills) < self.config.analysis.min_trades:
+                # Check if this could be a market maker (exactly 2000 trades at API limit)
+                if len(fills) == 2000:
+                    # Extract first trade time
+                    mm_first_trade_time = self._extract_first_trade_time(fills)
+                    if mm_first_trade_time is not None:
+                        current_time_ms = int(datetime.utcnow().timestamp() * 1000)
+                        first_trade_age_ms = current_time_ms - mm_first_trade_time
+                        first_trade_age_hours = first_trade_age_ms / (60 * 60 * 1000)
+
+                        # Check if < 24 hours old
+                        if first_trade_age_hours < 24:
+                            # Fetch account balance
+                            mm_account_balance = None
+                            try:
+                                user_state = await self.api_client.fetch_user_state(address)
+                                if isinstance(user_state, dict) and 'marginSummary' in user_state:
+                                    account_value = user_state['marginSummary'].get('accountValue')
+                                    if account_value is not None:
+                                        mm_account_balance = float(account_value)
+                            except Exception as e:
+                                logger.debug(f"Failed to fetch balance for market maker check: {e}")
+
+                            # Check if it's a market maker
+                            if self._is_market_maker(fills, mm_account_balance, mm_first_trade_time):
+                                await self.database.save_market_maker(
+                                    address=address,
+                                    trade_count=len(fills),
+                                    account_balance=mm_account_balance,
+                                    first_trade_time=mm_first_trade_time,
+                                    first_trade_age_hours=first_trade_age_hours
+                                )
+                                logger.info(
+                                    f"Market maker detected: {self._shorten_address(address)} "
+                                    f"(trades={len(fills)}, balance=${mm_account_balance:,.2f}, "
+                                    f"age={first_trade_age_hours:.1f}h)"
+                                )
+                                self.stats['market_makers_detected'] += 1
+                                await self.database.log_analysis(
+                                    address=address,
+                                    status='market_maker_detected',
+                                    trades_fetched=len(fills)
+                                )
+                                return True
+
                 logger.info(
                     f"Insufficient data for {self._shorten_address(address)}: "
                     f"{len(fills)} trades (need {self.config.analysis.min_trades})"
@@ -151,6 +196,43 @@ class AnalyzerService:
 
                 if first_trade_age_ms < min_age_ms:
                     days_old = first_trade_age_ms / (24 * 60 * 60 * 1000)
+                    first_trade_age_hours = first_trade_age_ms / (60 * 60 * 1000)
+
+                    # Check if this could be a market maker (2000 trades + < 24h old)
+                    if len(fills) == 2000 and first_trade_age_hours < 24:
+                        # Fetch account balance to complete market maker check
+                        mm_account_balance = None
+                        try:
+                            user_state = await self.api_client.fetch_user_state(address)
+                            if isinstance(user_state, dict) and 'marginSummary' in user_state:
+                                account_value = user_state['marginSummary'].get('accountValue')
+                                if account_value is not None:
+                                    mm_account_balance = float(account_value)
+                        except Exception as e:
+                            logger.debug(f"Failed to fetch balance for market maker check: {e}")
+
+                        # Check if it's a market maker
+                        if self._is_market_maker(fills, mm_account_balance, first_trade_time):
+                            await self.database.save_market_maker(
+                                address=address,
+                                trade_count=len(fills),
+                                account_balance=mm_account_balance,
+                                first_trade_time=first_trade_time,
+                                first_trade_age_hours=first_trade_age_hours
+                            )
+                            logger.info(
+                                f"Market maker detected: {self._shorten_address(address)} "
+                                f"(trades={len(fills)}, balance=${mm_account_balance:,.2f}, "
+                                f"age={first_trade_age_hours:.1f}h)"
+                            )
+                            self.stats['market_makers_detected'] += 1
+                            await self.database.log_analysis(
+                                address=address,
+                                status='market_maker_detected',
+                                trades_fetched=len(fills)
+                            )
+                            return True
+
                     logger.info(
                         f"First trade too recent for {self._shorten_address(address)}: "
                         f"{days_old:.1f} days old (need {min_age_days} days)"
@@ -187,6 +269,29 @@ class AnalyzerService:
             # Check minimum account balance BEFORE statistical analysis
             if account_balance is not None:
                 if account_balance < self.config.analysis.min_account_balance:
+                    # Check if this could be a market maker before giving up
+                    if self._is_market_maker(fills, account_balance, first_trade_time):
+                        first_trade_age_hours = (int(datetime.utcnow().timestamp() * 1000) - first_trade_time) / (60 * 60 * 1000)
+                        await self.database.save_market_maker(
+                            address=address,
+                            trade_count=len(fills),
+                            account_balance=account_balance,
+                            first_trade_time=first_trade_time,
+                            first_trade_age_hours=first_trade_age_hours
+                        )
+                        logger.info(
+                            f"Market maker detected: {self._shorten_address(address)} "
+                            f"(trades={len(fills)}, balance=${account_balance:,.2f}, "
+                            f"age={first_trade_age_hours:.1f}h)"
+                        )
+                        self.stats['market_makers_detected'] += 1
+                        await self.database.log_analysis(
+                            address=address,
+                            status='market_maker_detected',
+                            trades_fetched=len(fills)
+                        )
+                        return True  # Consider this a successful identification
+
                     logger.info(
                         f"Insufficient account balance for {self._shorten_address(address)}: "
                         f"${account_balance:,.2f} (need ${self.config.analysis.min_account_balance:,.2f})"
@@ -445,12 +550,13 @@ class AnalyzerService:
         """Log current statistics."""
         logger.info("=" * 60)
         logger.info("Analyzer Statistics:")
-        logger.info(f"  Total analyzed:    {self.stats['total_analyzed']}")
-        logger.info(f"  Successful:        {self.stats['successful']}")
-        logger.info(f"  Insufficient data: {self.stats['insufficient_data']}")
-        logger.info(f"  API errors:        {self.stats['api_errors']}")
-        logger.info(f"  Alerts triggered:  {self.stats['alerts_triggered']}")
-        logger.info(f"  Cache size:        {self.fills_cache.size()}")
+        logger.info(f"  Total analyzed:        {self.stats['total_analyzed']}")
+        logger.info(f"  Successful:            {self.stats['successful']}")
+        logger.info(f"  Market makers found:   {self.stats['market_makers_detected']}")
+        logger.info(f"  Insufficient data:     {self.stats['insufficient_data']}")
+        logger.info(f"  API errors:            {self.stats['api_errors']}")
+        logger.info(f"  Alerts triggered:      {self.stats['alerts_triggered']}")
+        logger.info(f"  Cache size:            {self.fills_cache.size()}")
         logger.info("=" * 60)
 
     def get_statistics(self) -> dict:
@@ -496,6 +602,50 @@ class AnalyzerService:
                     continue
 
         return oldest_time
+
+    def _is_market_maker(
+        self,
+        fills: List[dict],
+        account_balance: Optional[float],
+        first_trade_time: Optional[int]
+    ) -> bool:
+        """
+        Check if trader meets market maker criteria.
+
+        Criteria:
+        - Exactly 2000 transactions (API limit)
+        - First trade < 24 hours old
+        - Account balance > $50,000
+
+        Args:
+            fills: List of trade fills
+            account_balance: Account balance in USD
+            first_trade_time: Timestamp (ms) of first trade
+
+        Returns:
+            True if meets market maker criteria
+        """
+        # Check trade count (API limit)
+        if len(fills) != 2000:
+            return False
+
+        # Check account balance
+        if account_balance is None or account_balance <= 50000:
+            return False
+
+        # Check first trade age
+        if first_trade_time is None:
+            return False
+
+        current_time_ms = int(datetime.utcnow().timestamp() * 1000)
+        first_trade_age_ms = current_time_ms - first_trade_time
+        first_trade_age_hours = first_trade_age_ms / (60 * 60 * 1000)
+
+        # Must be less than 24 hours old
+        if first_trade_age_hours >= 24:
+            return False
+
+        return True
 
 
 async def main():
