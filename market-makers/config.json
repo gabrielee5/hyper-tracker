@@ -1,6 +1,6 @@
 {
   "analyzer_db_path": "../data/analyzed_traders.db",
-  "local_db_path": "./data/mm_positions.db",
+  "local_db_path": "../data/mm_positions.db",
   "api": {
     "base_url": "https://api.hyperliquid.xyz",
     "rate_limit_calls": 15,
@@ -9,7 +9,7 @@
     "max_retries": 3
   },
   "monitoring": {
-    "fetch_interval_seconds": 60,
+    "fetch_interval_seconds": 900,
     "position_snapshot_enabled": true,
     "min_position_value_usd": 100,
     "concurrency_limit": 10,
