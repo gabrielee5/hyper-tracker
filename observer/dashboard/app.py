@@ -57,22 +57,8 @@ class ObserverDashboardApp:
             approved_db=self.approved_db
         )
 
-        # Initialize live data fetcher
-        self.live_fetcher = LiveTraderDataFetcher(
-            base_url=config.api.base_url,
-            rate_limit_calls=config.api.rate_limit_calls,
-            rate_limit_period=config.api.rate_limit_period,
-            timeout=config.api.timeout,
-            cache_ttl_seconds=config.api.cache_ttl_seconds
-        )
-
         # Initialize database schema
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        try:
-            loop.run_until_complete(self.approved_db.initialize())
-        finally:
-            loop.close()
+        asyncio.run(self.approved_db.initialize())
 
         # Register routes
         self._register_routes()
@@ -101,10 +87,8 @@ class ObserverDashboardApp:
             max_score = request.args.get('max_score', 100, type=int)
             limit = request.args.get('limit', None, type=int)
 
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
             try:
-                traders = loop.run_until_complete(
+                traders = asyncio.run(
                     self.queue_manager.get_traders_for_review(
                         min_score=min_score,
                         max_score=max_score,
@@ -118,54 +102,59 @@ class ObserverDashboardApp:
             except Exception as e:
                 logger.error(f"Error fetching queue: {e}")
                 return jsonify({'error': str(e)}), 500
-            finally:
-                loop.close()
 
         @self.app.route('/api/trader/<address>')
         def get_trader_details(address):
             """Get complete trader data (DB + live API)."""
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
-            try:
+            async def fetch_data():
                 # Get trader from Phase 2 database
-                trader_data = loop.run_until_complete(
-                    self.queue_manager.phase2_reader.get_trader(address)
-                )
+                trader_data = await self.queue_manager.phase2_reader.get_trader(address)
 
                 if not trader_data:
-                    return jsonify({'error': 'Trader not found'}), 404
+                    return None
 
-                # Get live API data
-                live_data = loop.run_until_complete(
-                    self.live_fetcher.fetch_trader_complete_data(address)
+                # Create a fresh LiveTraderDataFetcher for this request
+                live_fetcher = LiveTraderDataFetcher(
+                    base_url=self.config.api.base_url,
+                    rate_limit_calls=self.config.api.rate_limit_calls,
+                    rate_limit_period=self.config.api.rate_limit_period,
+                    timeout=self.config.api.timeout,
+                    cache_ttl_seconds=self.config.api.cache_ttl_seconds
                 )
 
-                # Check if already approved or rejected
-                is_approved = loop.run_until_complete(
-                    self.approved_db.is_already_approved(address)
-                )
-                is_rejected = loop.run_until_complete(
-                    self.approved_db.is_already_rejected(address)
-                )
+                try:
+                    # Get live API data
+                    live_data = await live_fetcher.fetch_trader_complete_data(address)
 
-                # Combine all data
-                response = {
-                    'trader': trader_data,
-                    'live': live_data,
-                    'status': {
-                        'approved': is_approved,
-                        'rejected': is_rejected,
-                        'pending': not (is_approved or is_rejected)
+                    # Check if already approved or rejected
+                    is_approved = await self.approved_db.is_already_approved(address)
+                    is_rejected = await self.approved_db.is_already_rejected(address)
+
+                    # Combine all data
+                    return {
+                        'trader': trader_data,
+                        'live': live_data,
+                        'status': {
+                            'approved': is_approved,
+                            'rejected': is_rejected,
+                            'pending': not (is_approved or is_rejected)
+                        }
                     }
-                }
+                finally:
+                    # Close the fetcher's API client
+                    await live_fetcher.close()
+
+            try:
+                response = asyncio.run(fetch_data())
+
+                if not response:
+                    return jsonify({'error': 'Trader not found'}), 404
 
                 return jsonify(response)
 
             except Exception as e:
-                logger.error(f"Error fetching trader details for {address}: {e}")
+                logger.error(f"Error fetching trader details for {address}: {e}", exc_info=True)
                 return jsonify({'error': str(e)}), 500
-            finally:
-                loop.close()
 
         @self.app.route('/api/trader/<address>/approve', methods=['POST'])
         def approve_trader(address):
@@ -174,26 +163,28 @@ class ObserverDashboardApp:
             reason = data.get('reason')
             notes = data.get('notes')
 
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
-            try:
+            async def do_approve():
                 # Get trader metrics from Phase 2 database
-                trader_data = loop.run_until_complete(
-                    self.queue_manager.phase2_reader.get_trader(address)
-                )
+                trader_data = await self.queue_manager.phase2_reader.get_trader(address)
 
                 if not trader_data:
-                    return jsonify({'error': 'Trader not found'}), 404
+                    return None
 
                 # Save approval
-                loop.run_until_complete(
-                    self.approved_db.approve_trader(
-                        address=address,
-                        metrics=trader_data,
-                        reason=reason,
-                        notes=notes
-                    )
+                await self.approved_db.approve_trader(
+                    address=address,
+                    metrics=trader_data,
+                    reason=reason,
+                    notes=notes
                 )
+
+                return True
+
+            try:
+                result = asyncio.run(do_approve())
+
+                if not result:
+                    return jsonify({'error': 'Trader not found'}), 404
 
                 return jsonify({
                     'success': True,
@@ -203,8 +194,6 @@ class ObserverDashboardApp:
             except Exception as e:
                 logger.error(f"Error approving trader {address}: {e}")
                 return jsonify({'error': str(e)}), 500
-            finally:
-                loop.close()
 
         @self.app.route('/api/trader/<address>/reject', methods=['POST'])
         def reject_trader(address):
@@ -212,26 +201,28 @@ class ObserverDashboardApp:
             data = request.get_json() or {}
             reason = data.get('reason')
 
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
-            try:
+            async def do_reject():
                 # Get trader metrics from Phase 2 database
-                trader_data = loop.run_until_complete(
-                    self.queue_manager.phase2_reader.get_trader(address)
-                )
+                trader_data = await self.queue_manager.phase2_reader.get_trader(address)
 
                 if not trader_data:
-                    return jsonify({'error': 'Trader not found'}), 404
+                    return None
 
                 # Save rejection
-                loop.run_until_complete(
-                    self.approved_db.reject_trader(
-                        address=address,
-                        score=trader_data.get('score', 0),
-                        reason=reason,
-                        metrics=trader_data
-                    )
+                await self.approved_db.reject_trader(
+                    address=address,
+                    score=trader_data.get('score', 0),
+                    reason=reason,
+                    metrics=trader_data
                 )
+
+                return True
+
+            try:
+                result = asyncio.run(do_reject())
+
+                if not result:
+                    return jsonify({'error': 'Trader not found'}), 404
 
                 return jsonify({
                     'success': True,
@@ -241,8 +232,6 @@ class ObserverDashboardApp:
             except Exception as e:
                 logger.error(f"Error rejecting trader {address}: {e}")
                 return jsonify({'error': str(e)}), 500
-            finally:
-                loop.close()
 
         @self.app.route('/api/navigation/<address>/next')
         def get_next_trader(address):
@@ -250,10 +239,8 @@ class ObserverDashboardApp:
             min_score = request.args.get('min_score', 0, type=int)
             max_score = request.args.get('max_score', 100, type=int)
 
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
             try:
-                next_trader = loop.run_until_complete(
+                next_trader = asyncio.run(
                     self.queue_manager.get_next_trader(
                         current_address=address,
                         min_score=min_score,
@@ -269,8 +256,6 @@ class ObserverDashboardApp:
             except Exception as e:
                 logger.error(f"Error getting next trader: {e}")
                 return jsonify({'error': str(e)}), 500
-            finally:
-                loop.close()
 
         @self.app.route('/api/navigation/<address>/previous')
         def get_previous_trader(address):
@@ -278,10 +263,8 @@ class ObserverDashboardApp:
             min_score = request.args.get('min_score', 0, type=int)
             max_score = request.args.get('max_score', 100, type=int)
 
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
             try:
-                prev_trader = loop.run_until_complete(
+                prev_trader = asyncio.run(
                     self.queue_manager.get_previous_trader(
                         current_address=address,
                         min_score=min_score,
@@ -297,8 +280,6 @@ class ObserverDashboardApp:
             except Exception as e:
                 logger.error(f"Error getting previous trader: {e}")
                 return jsonify({'error': str(e)}), 500
-            finally:
-                loop.close()
 
         @self.app.route('/api/stats')
         def get_statistics():
@@ -306,23 +287,17 @@ class ObserverDashboardApp:
             min_score = request.args.get('min_score', 0, type=int)
             max_score = request.args.get('max_score', 100, type=int)
 
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
-            try:
+            async def get_stats():
                 # Get approval stats
-                approval_stats = loop.run_until_complete(
-                    self.approved_db.get_approval_statistics()
-                )
+                approval_stats = await self.approved_db.get_approval_statistics()
 
                 # Get pending count for current filter
-                pending_count = loop.run_until_complete(
-                    self.queue_manager.get_trader_count(
-                        min_score=min_score,
-                        max_score=max_score
-                    )
+                pending_count = await self.queue_manager.get_trader_count(
+                    min_score=min_score,
+                    max_score=max_score
                 )
 
-                stats = {
+                return {
                     **approval_stats,
                     'pending_count': pending_count,
                     'current_filter': {
@@ -331,13 +306,13 @@ class ObserverDashboardApp:
                     }
                 }
 
+            try:
+                stats = asyncio.run(get_stats())
                 return jsonify(stats)
 
             except Exception as e:
                 logger.error(f"Error fetching statistics: {e}")
                 return jsonify({'error': str(e)}), 500
-            finally:
-                loop.close()
 
         @self.app.route('/api/approved')
         def get_approved_traders():
@@ -345,10 +320,8 @@ class ObserverDashboardApp:
             limit = request.args.get('limit', 50, type=int)
             offset = request.args.get('offset', 0, type=int)
 
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
             try:
-                traders = loop.run_until_complete(
+                traders = asyncio.run(
                     self.approved_db.get_approved_traders(
                         limit=limit,
                         offset=offset
@@ -363,8 +336,6 @@ class ObserverDashboardApp:
             except Exception as e:
                 logger.error(f"Error fetching approved traders: {e}")
                 return jsonify({'error': str(e)}), 500
-            finally:
-                loop.close()
 
     def run(self):
         """Run the Flask development server."""
@@ -378,10 +349,6 @@ class ObserverDashboardApp:
             port=self.config.dashboard.port,
             debug=False
         )
-
-    async def cleanup(self):
-        """Cleanup resources."""
-        await self.live_fetcher.close()
 
 
 def create_app(config: Config) -> ObserverDashboardApp:

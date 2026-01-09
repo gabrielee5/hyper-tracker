@@ -69,12 +69,6 @@ def main():
         # Handle graceful shutdown
         def signal_handler(sig, frame):
             logger.info("Shutting down Observer Dashboard...")
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
-            try:
-                loop.run_until_complete(app.cleanup())
-            finally:
-                loop.close()
             sys.exit(0)
 
         signal.signal(signal.SIGINT, signal_handler)
