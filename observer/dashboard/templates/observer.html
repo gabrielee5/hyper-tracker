@@ -348,6 +348,10 @@
                 <span class="stat-value" id="stat-position">-</span>
                 <span class="stat-label">Position</span>
             </div>
+            <div class="stat-item">
+                <span class="stat-value" id="stat-trader-id">-</span>
+                <span class="stat-label">Trader ID</span>
+            </div>
         </div>
 
         <!-- Loading State -->
@@ -367,9 +371,12 @@
                             <span id="trader-status-badge"></span>
                         </h2>
                         <p>Score: <strong id="trader-score">-</strong> / 100 <span id="score-description">-</span></p>
+                        <p style="font-size: 0.875rem; color: #6b7280;">
+                            Analyzing trader #<span id="current-trader-id">-</span> of <span id="total-traders-db">-</span>
+                        </p>
                     </div>
                     <div class="progress-indicator" id="progress-indicator">
-                        Trader <span id="trader-position">-</span> of <span id="total-traders">-</span>
+                        Queue position: <span id="trader-position">-</span> of <span id="total-traders">-</span>
                     </div>
                 </div>
             </div>
@@ -525,9 +532,12 @@
             const address = data.trader.address;
             const score = data.trader.score;
             const status = data.status;
+            const traderId = data.trader.trader_id || '-';
 
             document.getElementById('trader-address').textContent = address;
             document.getElementById('trader-score').textContent = score;
+            document.getElementById('current-trader-id').textContent = traderId;
+            document.getElementById('stat-trader-id').textContent = traderId;
 
             // Score description
             let desc = '';
@@ -713,6 +723,11 @@
                 document.getElementById('stat-pending').textContent = stats.pending_count;
                 document.getElementById('stat-approved').textContent = stats.approved_count;
                 document.getElementById('stat-rejected').textContent = stats.rejected_count;
+
+                // Update total traders from database
+                if (stats.total_traders !== undefined) {
+                    document.getElementById('total-traders-db').textContent = stats.total_traders;
+                }
 
             } catch (error) {
                 console.error('Error loading stats:', error);

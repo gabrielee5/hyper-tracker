@@ -304,9 +304,13 @@ class ObserverDashboardApp:
                     max_score=max_score
                 )
 
+                # Get total traders count from database
+                total_traders = await self.queue_manager.phase2_reader.get_total_traders_count()
+
                 return {
                     **approval_stats,
                     'pending_count': pending_count,
+                    'total_traders': total_traders,
                     'current_filter': {
                         'min_score': min_score,
                         'max_score': max_score

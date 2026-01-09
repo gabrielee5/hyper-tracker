@@ -483,7 +483,7 @@ class Phase2Reader:
             limit: Maximum number of results
 
         Returns:
-            List of trader dictionaries
+            List of trader dictionaries (includes trader_id for progress tracking)
         """
         query = """
             SELECT * FROM scored_traders
@@ -498,6 +498,20 @@ class Phase2Reader:
             async with db.execute(query, (min_score, max_score)) as cursor:
                 rows = await cursor.fetchall()
                 return [self._row_to_dict(cursor, row) for row in rows]
+
+    async def get_total_traders_count(self) -> int:
+        """
+        Get total count of all traders in the database.
+
+        Returns:
+            Total number of traders
+        """
+        async with self._get_connection() as db:
+            async with db.execute("""
+                SELECT COUNT(*) FROM scored_traders
+            """) as cursor:
+                row = await cursor.fetchone()
+                return row[0] if row else 0
 
     async def get_trader(self, address: str) -> Optional[Dict]:
         """
