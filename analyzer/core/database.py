@@ -54,7 +54,8 @@ class AnalyzerDatabase:
             # Main table: scored_traders
             await db.execute("""
                 CREATE TABLE IF NOT EXISTS scored_traders (
-                    address TEXT PRIMARY KEY,
+                    trader_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    address TEXT NOT NULL UNIQUE,
                     score INTEGER NOT NULL CHECK(score >= 0 AND score <= 100),
 
                     -- Performance metrics
@@ -177,6 +178,9 @@ class AnalyzerDatabase:
         Args:
             address: Trader's Ethereum address
             metrics: TraderMetrics object with complete analysis
+
+        Note:
+            trader_id is auto-generated for new traders and preserved on updates
         """
         async with self._get_connection() as db:
             await db.execute("""
