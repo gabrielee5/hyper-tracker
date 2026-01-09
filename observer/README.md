@@ -15,11 +15,15 @@ The Observer dashboard provides a comprehensive interface for manually reviewing
 
 ## Features
 
-- **Sequential Workflow**: Review traders one at a time with approve/reject actions
+- **Sequential Workflow**: Review traders one at a time with three action options
+- **Strategy Selection**:
+  - **Follow (+1)**: Approve trader for copying their positions directly
+  - **Invert (-1)**: Approve trader for contrarian strategy (inverse positions)
+  - **Reject**: Discard trader from consideration
 - **Score Range Filters**: Toggle between best traders (85-100), worst traders (0-10), or all traders
 - **Live API Data**: Real-time positions and PnL data from Hyperliquid
 - **PnL Visualization**: Chart.js timeline showing cumulative PnL
-- **Approval Tracking**: Stores approved traders in `data/approved_traders.db`
+- **Approval Tracking**: Stores approved traders with strategy flag in `data/approved_traders.db`
 - **Rejection Log**: Tracks rejected traders with optional reasons
 - **Keyboard Shortcuts**: Fast navigation and actions via keyboard
 - **Fabietti Design**: Brutalist, minimalist design system with 0.85px borders
@@ -72,7 +76,8 @@ The dashboard will be available at: http://127.0.0.1:5003
 ### Keyboard Shortcuts
 
 - **Arrow Left/Right**: Navigate between traders
-- **A**: Approve current trader
+- **F**: Follow current trader (+1 strategy flag)
+- **I**: Invert current trader (-1 strategy flag)
 - **R**: Reject current trader
 - **1**: Switch to best traders view (85-100)
 - **2**: Switch to worst traders view (0-10)
@@ -87,7 +92,10 @@ The dashboard will be available at: http://127.0.0.1:5003
    - Current open positions (live from API)
    - Statistical analysis details
 3. Review the trader data
-4. Click **APPROVE** or **REJECT** (or use A/R keys)
+4. Choose an action:
+   - **FOLLOW (+1)**: Approve for copying positions (e.g., good traders with high win rate)
+   - **INVERT (-1)**: Approve for contrarian strategy (e.g., consistently bad traders)
+   - **REJECT**: Discard trader
 5. Optionally add a reason for your decision
 6. Dashboard automatically advances to the next trader
 7. Continue reviewing until queue is complete
@@ -111,13 +119,25 @@ The dashboard will be available at: http://127.0.0.1:5003
 
 **approved_traders table**:
 - Stores approved traders with full metrics snapshot
+- **strategy_flag**: `+1` for follow (copy positions), `-1` for invert (contrarian)
 - Includes approval timestamp and optional reason
 - Primary key: address
+
+**Fields**:
+- `address` (TEXT PRIMARY KEY)
+- `strategy_flag` (INTEGER: 1 or -1)
+- All metrics from analyzed_traders (score, pnl, win_rate, etc.)
+- `approved_timestamp`, `approval_reason`, `notes`
 
 **rejected_traders table**:
 - Logs rejected traders with rejection timestamp
 - Includes optional rejection reason
 - Allows same trader to be rejected multiple times (with history)
+
+**Query Methods**:
+- `get_approved_traders()` - All approved traders
+- `get_follow_traders()` - Only traders with strategy_flag = +1
+- `get_invert_traders()` - Only traders with strategy_flag = -1
 
 ## API Endpoints
 

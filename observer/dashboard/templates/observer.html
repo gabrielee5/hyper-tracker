@@ -108,6 +108,16 @@
             color: #fff;
         }
 
+        .btn-invert {
+            border-color: #f59e0b;
+            color: #f59e0b;
+        }
+
+        .btn-invert:hover:not(:disabled) {
+            background: #f59e0b;
+            color: #fff;
+        }
+
         .btn-group {
             display: flex;
             gap: 0.5rem;
@@ -401,13 +411,14 @@
                 <h2>Actions</h2>
                 <div class="flex gap-1 mb-1">
                     <button class="btn" id="btn-previous" onclick="navigatePrevious()">← Previous</button>
-                    <button class="btn btn-success" id="btn-approve" onclick="approveTrader()">✓ APPROVE</button>
+                    <button class="btn btn-success" id="btn-follow" onclick="followTrader()">↗ FOLLOW (+1)</button>
+                    <button class="btn btn-invert" id="btn-invert" onclick="invertTrader()">↙ INVERT (-1)</button>
                     <button class="btn btn-danger" id="btn-reject" onclick="rejectTrader()">✗ REJECT</button>
                     <button class="btn" id="btn-next" onclick="navigateNext()">Next →</button>
                 </div>
                 <div>
                     <label style="display: block; margin-bottom: 0.25rem; font-size: 0.875rem;">Reason (optional):</label>
-                    <input type="text" id="reason-input" placeholder="e.g., Strong win rate and consistent performance">
+                    <input type="text" id="reason-input" placeholder="e.g., Strong win rate for following / Poor performance for contrarian">
                 </div>
             </div>
         </div>
@@ -709,7 +720,7 @@
         }
 
         // Actions
-        async function approveTrader() {
+        async function followTrader() {
             if (!currentTrader) return;
 
             const reason = document.getElementById('reason-input').value;
@@ -718,7 +729,7 @@
                 const response = await fetch(`/api/trader/${currentTrader.trader.address}/approve`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ reason })
+                    body: JSON.stringify({ strategy_flag: 1, reason })
                 });
 
                 const result = await response.json();
@@ -728,12 +739,40 @@
                     await navigateNext();
                     await updateStats();
                 } else {
-                    alert('Failed to approve trader');
+                    alert('Failed to approve trader for follow');
                 }
 
             } catch (error) {
                 console.error('Error approving trader:', error);
-                alert('Failed to approve trader');
+                alert('Failed to approve trader for follow');
+            }
+        }
+
+        async function invertTrader() {
+            if (!currentTrader) return;
+
+            const reason = document.getElementById('reason-input').value;
+
+            try {
+                const response = await fetch(`/api/trader/${currentTrader.trader.address}/approve`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ strategy_flag: -1, reason })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    document.getElementById('reason-input').value = '';
+                    await navigateNext();
+                    await updateStats();
+                } else {
+                    alert('Failed to approve trader for invert');
+                }
+
+            } catch (error) {
+                console.error('Error approving trader:', error);
+                alert('Failed to approve trader for invert');
             }
         }
 
@@ -823,9 +862,12 @@
                 } else if (e.key === 'ArrowLeft') {
                     e.preventDefault();
                     navigatePrevious();
-                } else if (e.key === 'a' || e.key === 'A') {
+                } else if (e.key === 'f' || e.key === 'F') {
                     e.preventDefault();
-                    approveTrader();
+                    followTrader();
+                } else if (e.key === 'i' || e.key === 'I') {
+                    e.preventDefault();
+                    invertTrader();
                 } else if (e.key === 'r' || e.key === 'R') {
                     e.preventDefault();
                     rejectTrader();

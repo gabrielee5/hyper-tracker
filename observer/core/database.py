@@ -68,6 +68,9 @@ class ApprovedTradersDatabase:
                     account_balance REAL,
                     first_trade_time INTEGER,
 
+                    -- Strategy flag: +1 for follow, -1 for invert (contrarian)
+                    strategy_flag INTEGER NOT NULL CHECK(strategy_flag IN (1, -1)),
+
                     -- Approval metadata
                     approved_timestamp TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
                     approval_reason TEXT,
@@ -134,6 +137,7 @@ class ApprovedTradersDatabase:
         self,
         address: str,
         metrics: Dict,
+        strategy_flag: int,
         reason: Optional[str] = None,
         notes: Optional[str] = None
     ):
@@ -143,18 +147,22 @@ class ApprovedTradersDatabase:
         Args:
             address: Trader's Ethereum address
             metrics: Dictionary with all trader metrics
+            strategy_flag: +1 for follow, -1 for invert (contrarian)
             reason: Optional approval reason
             notes: Optional notes about the trader
         """
+        if strategy_flag not in (1, -1):
+            raise ValueError("strategy_flag must be 1 (follow) or -1 (invert)")
+
         async with self._get_connection() as db:
             await db.execute("""
                 INSERT INTO approved_traders (
                     address, score, total_pnl, mean_pnl_per_trade, std_dev,
                     sharpe_ratio, expected_value, t_statistic, p_value,
                     monte_carlo_percentile, num_trades, win_rate, avg_win,
-                    avg_loss, account_balance, first_trade_time,
+                    avg_loss, account_balance, first_trade_time, strategy_flag,
                     approved_timestamp, approval_reason, notes
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ON CONFLICT(address) DO UPDATE SET
                     score = excluded.score,
                     total_pnl = excluded.total_pnl,
@@ -171,6 +179,7 @@ class ApprovedTradersDatabase:
                     avg_loss = excluded.avg_loss,
                     account_balance = excluded.account_balance,
                     first_trade_time = excluded.first_trade_time,
+                    strategy_flag = excluded.strategy_flag,
                     approved_timestamp = excluded.approved_timestamp,
                     approval_reason = excluded.approval_reason,
                     notes = excluded.notes
@@ -191,6 +200,7 @@ class ApprovedTradersDatabase:
                 metrics.get('avg_loss'),
                 metrics.get('account_balance'),
                 metrics.get('first_trade_time'),
+                strategy_flag,
                 datetime.now(ZoneInfo(self.timezone)).isoformat(),
                 reason,
                 notes
@@ -198,7 +208,8 @@ class ApprovedTradersDatabase:
 
             await db.commit()
 
-        logger.info(f"Approved trader: {self._shorten_address(address)}")
+        strategy_name = "follow" if strategy_flag == 1 else "invert"
+        logger.info(f"Approved trader ({strategy_name}): {self._shorten_address(address)}")
 
     async def reject_trader(
         self,
@@ -367,7 +378,8 @@ class ApprovedTradersDatabase:
         self,
         limit: Optional[int] = None,
         offset: int = 0,
-        order_by: str = 'approved_timestamp'
+        order_by: str = 'approved_timestamp',
+        strategy_flag: Optional[int] = None
     ) -> List[Dict]:
         """
         Get list of approved traders.
@@ -376,22 +388,43 @@ class ApprovedTradersDatabase:
             limit: Maximum number of results
             offset: Offset for pagination
             order_by: Column to order by (default: approved_timestamp)
+            strategy_flag: Filter by strategy (+1 for follow, -1 for invert, None for all)
 
         Returns:
             List of approved trader dictionaries
         """
-        query = f"""
-            SELECT * FROM approved_traders
-            ORDER BY {order_by} DESC
-        """
+        if strategy_flag is not None:
+            query = f"""
+                SELECT * FROM approved_traders
+                WHERE strategy_flag = ?
+                ORDER BY {order_by} DESC
+            """
+        else:
+            query = f"""
+                SELECT * FROM approved_traders
+                ORDER BY {order_by} DESC
+            """
 
         if limit:
             query += f" LIMIT {limit} OFFSET {offset}"
 
         async with self._get_connection() as db:
-            async with db.execute(query) as cursor:
-                rows = await cursor.fetchall()
-                return [self._row_to_dict(cursor, row) for row in rows]
+            if strategy_flag is not None:
+                async with db.execute(query, (strategy_flag,)) as cursor:
+                    rows = await cursor.fetchall()
+                    return [self._row_to_dict(cursor, row) for row in rows]
+            else:
+                async with db.execute(query) as cursor:
+                    rows = await cursor.fetchall()
+                    return [self._row_to_dict(cursor, row) for row in rows]
+
+    async def get_follow_traders(self, limit: Optional[int] = None) -> List[Dict]:
+        """Get traders approved for following (+1)."""
+        return await self.get_approved_traders(limit=limit, strategy_flag=1)
+
+    async def get_invert_traders(self, limit: Optional[int] = None) -> List[Dict]:
+        """Get traders approved for inverting (-1)."""
+        return await self.get_approved_traders(limit=limit, strategy_flag=-1)
 
     def _row_to_dict(self, cursor, row) -> Dict:
         """Convert database row to dictionary."""

@@ -158,10 +158,15 @@ class ObserverDashboardApp:
 
         @self.app.route('/api/trader/<address>/approve', methods=['POST'])
         def approve_trader(address):
-            """Approve a trader."""
+            """Approve a trader with follow or invert strategy."""
             data = request.get_json() or {}
+            strategy_flag = data.get('strategy_flag', 1)  # Default to follow
             reason = data.get('reason')
             notes = data.get('notes')
+
+            # Validate strategy_flag
+            if strategy_flag not in (1, -1):
+                return jsonify({'error': 'strategy_flag must be 1 (follow) or -1 (invert)'}), 400
 
             async def do_approve():
                 # Get trader metrics from Phase 2 database
@@ -170,10 +175,11 @@ class ObserverDashboardApp:
                 if not trader_data:
                     return None
 
-                # Save approval
+                # Save approval with strategy flag
                 await self.approved_db.approve_trader(
                     address=address,
                     metrics=trader_data,
+                    strategy_flag=strategy_flag,
                     reason=reason,
                     notes=notes
                 )
@@ -186,9 +192,10 @@ class ObserverDashboardApp:
                 if not result:
                     return jsonify({'error': 'Trader not found'}), 404
 
+                strategy_name = "follow" if strategy_flag == 1 else "invert"
                 return jsonify({
                     'success': True,
-                    'message': f'Trader {address} approved'
+                    'message': f'Trader {address} approved ({strategy_name})'
                 })
 
             except Exception as e:
