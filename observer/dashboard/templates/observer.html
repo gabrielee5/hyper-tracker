@@ -513,7 +513,7 @@
                 // Update UI
                 updateTraderHeader(data);
                 updateMetrics(data.trader);
-                updateStatistics(data.trader);
+                updateStatistics(data.trader, data.live.trading_stats);
                 updateChart(data.live.pnl_timeline);
                 updatePositions(data.live.current_positions);
                 updatePosition(address);
@@ -582,7 +582,7 @@
         }
 
         // Update statistics
-        function updateStatistics(trader) {
+        function updateStatistics(trader, tradingStats) {
             const stats = [
                 { label: 'T-Statistic', value: trader.t_statistic?.toFixed(3) || 'N/A' },
                 { label: 'P-Value', value: trader.p_value?.toFixed(4) || 'N/A' },
@@ -592,6 +592,18 @@
                 { label: 'Avg Win', value: `$${trader.avg_win?.toFixed(2) || '0.00'}` },
                 { label: 'Avg Loss', value: `$${trader.avg_loss?.toFixed(2) || '0.00'}` }
             ];
+
+            // Add new trading statistics if available
+            if (tradingStats) {
+                stats.push(
+                    { label: 'First Trade', value: tradingStats.first_trade_date || 'N/A' },
+                    { label: 'Last Trade', value: tradingStats.last_trade_date || 'N/A' },
+                    { label: 'Total Volume', value: tradingStats.total_volume_usd ? `$${tradingStats.total_volume_usd.toLocaleString()}` : 'N/A' },
+                    { label: 'Avg Volume/Trade', value: tradingStats.avg_volume_per_trade_usd ? `$${tradingStats.avg_volume_per_trade_usd.toLocaleString()}` : 'N/A' },
+                    { label: 'Avg Time in Trade', value: tradingStats.avg_time_in_trade_hours !== null ? `${tradingStats.avg_time_in_trade_hours.toFixed(1)}h` : 'N/A' },
+                    { label: 'Position Cycles', value: tradingStats.num_position_cycles || 0 }
+                );
+            }
 
             const grid = document.getElementById('stats-grid');
             grid.innerHTML = stats.map(s => `
