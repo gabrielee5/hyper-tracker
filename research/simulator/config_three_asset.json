@@ -1,0 +1,41 @@
+{
+  "portfolio": {
+    "starting_capital": 100000,
+    "leverage": 1.0,
+    "cash_reserve_pct": 0.0,
+    "max_position_pct": 0.333
+  },
+  "strategy": {
+    "name": "three_asset",
+    "rebalance_interval_seconds": 1800,
+    "min_confidence_threshold": 0.0,
+    "max_positions": 3,
+    "min_trade_size_usd": 100
+  },
+  "execution": {
+    "maker_fee": 0.0002,
+    "taker_fee": 0.0005,
+    "slippage_model": {
+      "type": "linear",
+      "base_bps": 0,
+      "size_impact": 0.00001
+    }
+  },
+  "database": {
+    "signals_db": "../../data/contrarian_signals.db",
+    "simulator_db": "../../data/simulator_three_asset.db"
+  },
+  "api": {
+    "hyperliquid_rest": "https://api.hyperliquid.xyz",
+    "price_update_interval_seconds": 1800
+  },
+  "dashboard": {
+    "port": 5004,
+    "update_interval_seconds": 1800,
+    "timezone": "UTC"
+  },
+  "logging": {
+    "level": "INFO",
+    "file": "../../logs/simulator_three_asset.log"
+  }
+}

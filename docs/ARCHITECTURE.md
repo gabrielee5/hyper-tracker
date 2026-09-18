@@ -1,447 +1,241 @@
-# System Architecture & Design Decisions
+# Architecture
 
-## Overview
+How the modules fit together, what each one reads and writes, and the database
+schemas.
 
-This document explains the technical architecture, design decisions, and implementation details of the Hyperliquid Trader Address Tracker.
-
-## System Components
-
-### 1. Configuration Layer (`config.py`)
-
-**Purpose**: Centralized configuration management using environment variables and Pydantic validation.
-
-**Key Features**:
-- Type-safe configuration using Pydantic models
-- Environment-based configuration (`.env` file)
-- Automatic API URL selection based on network (mainnet/testnet)
-- Flexible coin selection (specific coins or all coins)
-
-**Design Decision**: Using Pydantic provides runtime validation and clear error messages when configuration is invalid, preventing runtime errors.
-
-### 2. Connection Manager (`connection.py`)
-
-**Purpose**: Manages WebSocket connections to Hyperliquid using the official Python SDK.
-
-**Key Features**:
-- WebSocket connection management
-- Multi-coin subscription handling
-- Automatic reconnection (handled by SDK)
-- Graceful disconnection
-
-**Design Decision**: We use the official Hyperliquid SDK instead of raw WebSocket connections for:
-- Built-in reconnection logic
-- Proper message parsing
-- API updates compatibility
-- Reduced maintenance burden
-
-### 3. Address Tracker (`address_tracker.py`)
-
-**Purpose**: Core business logic for extracting addresses from trade events and managing batch processing.
-
-**Key Features**:
-- Thread-safe batch processing with locks
-- In-memory deduplication within batches
-- Trade volume calculation
-- Statistics tracking per coin
-
-**Design Decision**: Batch processing vs. real-time insertion:
-- **Batch Wins**: At high trade volumes (1000+ trades/minute), individual INSERTs would cause database lock contention
-- **Memory Efficient**: Deque-based queue keeps memory usage constant
-- **Acceptable Latency**: 60-second batches are fine for address tracking (not HFT)
-
-### 4. Storage Layer (`storage.py`)
-
-**Purpose**: Database operations with SQLite for persistent address storage.
-
-**Schema Design**:
-
-```sql
--- Primary tracking table
-addresses (
-    address PRIMARY KEY,      -- Ethereum-style address
-    first_seen TIMESTAMP,     -- When first observed
-    last_seen TIMESTAMP,      -- Most recent activity
-    trade_count INTEGER,      -- Number of trades
-    total_volume_usd REAL     -- Cumulative trading volume
-)
-
--- Phase 2 ready: Detailed trade history
-trades (
-    id PRIMARY KEY,
-    address FOREIGN KEY,
-    coin TEXT,
-    side TEXT,
-    price REAL,
-    size REAL,
-    value_usd REAL,
-    trade_hash TEXT,
-    trade_id INTEGER,
-    timestamp TIMESTAMP
-)
-```
-
-**Key Features**:
-- Batch upsert with `ON CONFLICT` clause
-- Indexed for fast queries
-- Context manager for connection safety
-- Statistics methods for dashboard
-
-**Design Decision - SQLite vs. PostgreSQL**:
-
-| Criteria | SQLite | PostgreSQL |
-|----------|--------|------------|
-| Setup | Zero config | Requires server |
-| Performance (reads) | Excellent (embedded) | Excellent (network) |
-| Performance (writes) | Good (10K+ inserts/sec) | Excellent (unlimited) |
-| Concurrency | Single writer | Multiple writers |
-| Scalability | Millions of rows | Billions of rows |
-| Migration Path | Easy to export | - |
-
-**Verdict**: SQLite is perfect for Phase 1 (single instance, <10M addresses). Easy migration to PostgreSQL for Phase 2 if needed.
-
-### 5. Main Application (`main.py`)
-
-**Purpose**: Orchestrates all components and manages application lifecycle.
-
-**Architecture**:
-
-```
-Main Thread:
-├── Initialize components
-├── Connect to Hyperliquid
-├── Subscribe to coins
-├── Start periodic flush worker thread
-└── Keep alive loop (blocking)
-
-Worker Thread (daemon):
-├── Sleep for DEDUP_INTERVAL seconds
-├── Flush pending batch
-├── Log statistics
-└── Repeat
-```
-
-**Key Features**:
-- Signal handling (SIGINT, SIGTERM) for graceful shutdown
-- Thread-based periodic flushing
-- Comprehensive logging
-- Final statistics on exit
-
-**Design Decision - Threading vs. Asyncio**:
-- Hyperliquid SDK uses threading for WebSocket callbacks
-- Mixing asyncio with SDK threading is complex
-- Threading is simpler and sufficient for this use case
-- Dashboard runs in separate daemon thread
-
-### 6. Web Dashboard (`dashboard.py`)
-
-**Purpose**: Real-time web interface for monitoring tracker statistics.
-
-**Technology**: Flask + vanilla JavaScript (no frontend framework)
-
-**Features**:
-- Server-side rendered HTML with embedded CSS/JS
-- REST API endpoints for statistics
-- Auto-refresh every 5 seconds
-- Responsive design (mobile-friendly)
-
-**API Endpoints**:
-
-```
-GET /                      -> Dashboard HTML
-GET /api/stats            -> Overall statistics
-GET /api/addresses        -> Recent addresses
-GET /api/top-traders      -> Top traders by volume/count
-```
-
-**Design Decision - Why Flask?**:
-- Lightweight and fast
-- Single-file dashboard possible
-- No complex frontend build process
-- Easy to extend with more endpoints
-
-**Design Decision - Why No Frontend Framework?**:
-- Simple dashboard doesn't need React/Vue complexity
-- Faster initial load (no bundle)
-- Easier to customize
-- Can add framework later if needed
-
-### 7. Utils (`utils.py`)
-
-**Purpose**: Shared utilities for logging and formatting.
-
-**Key Features**:
-- Dual-output logging (console + file)
-- Number formatting (1000 -> 1K, 1000000 -> 1M)
-- Address shortening for display
-- Uptime calculation
-
-## Data Flow
+## Data flow
 
 ```
 Hyperliquid WebSocket
-       ↓
-[Trade Event: {users: [buyer, seller], ...}]
-       ↓
-Connection.subscribe() callback
-       ↓
-AddressTracker.process_trade_event()
-       ↓
-Extract addresses → Add to batch queue
-       ↓
-[Batch size reached OR 60s elapsed]
-       ↓
-AddressTracker.flush_batch()
-       ↓
-AddressStorage.batch_insert_addresses()
-       ↓
-SQLite Database (UPSERT with ON CONFLICT)
-       ↓
-Dashboard queries → Display statistics
+        │
+        ▼
+  pipeline/fetcher ─────────────▶ data/addresses.db
+        every trade, both sides        addresses, trades
+                                            │
+                                            │ read-only
+                                            ▼
+                                   pipeline/analyzer ──▶ data/analyzed_traders.db
+                                   fetches each trader's      scored_traders
+                                   fills from the REST API    analysis_log
+                                   and scores them            market_makers
+                                            │
+        ┌───────────────────┬───────────────┴───────────┬──────────────────┐
+        │ read-only         │ read-only                 │ read-only        │ read-only
+        ▼                   ▼                           ▼                  ▼
+  pipeline/contrarian  pipeline/follower       pipeline/market_makers  pipeline/observer
+  score <= 10          score >= 90             market_makers table     manual review UI
+  invert the cohort    mirror the cohort       net delta               follow/invert/reject
+        │                   │                           │                  │
+        ▼                   ▼                           ▼                  ▼
+  contrarian_signals.db follower_signals.db   mm_positions.db     approved_traders.db
+        │                                                                (no consumer)
+        │
+        ├─────────────────────────────▶ research/simulator      (paper trading)
+        │                                                        (superseded)
+        └─────────────────────────────▶ research/execution_analyzer
+                                         (offline analysis)
 ```
 
-## Concurrency & Thread Safety
+Every arrow after the fetcher is a read-only SQLite connection opened with
+`file:...?mode=ro`. No module writes to another module's database, so they can
+run concurrently and a crash in one does not corrupt another.
 
-### Thread Model
+`approved_traders.db` and `mm_positions.db` are terminal — nothing downstream
+reads them. The observer's follow/invert/reject decisions were meant to feed a
+hand-curated portfolio that was never built.
 
-1. **Main Thread**: WebSocket event loop (managed by SDK)
-2. **Worker Thread**: Periodic batch flushing
-3. **Dashboard Thread**: Flask web server
+## The modules
 
-### Synchronization
+### `pipeline/fetcher`
 
-- **AddressTracker**: Uses `threading.Lock` for batch queue access
-- **Database**: SQLite handles concurrent reads, single writer
-- **No shared state** between threads except through AddressTracker
+Subscribes to Hyperliquid's WebSocket trade feed for the configured coins and
+records the address on each fill. `TRACK_ROLE` decides whether the maker side,
+the taker side, or both are recorded — taker-only is the useful setting, because
+it excludes market makers, whose fill time is not their decision time.
 
-### Trade-offs
+Addresses are buffered (`BATCH_SIZE`, default 1000) and flushed in batches, with
+a periodic deduplication pass. It also writes a `trades` table that nothing
+downstream consumes: the analyzer re-fetches each trader's full history from the
+REST API instead, because the WebSocket feed only sees trades from the moment
+you connect.
 
-- **Pros**: Simple, predictable, no race conditions
-- **Cons**: Limited by GIL for CPU-bound tasks (not an issue here)
+Reconnects automatically. Serves a dashboard on :5000.
 
-## Performance Characteristics
+### `pipeline/analyzer`
 
-### Memory Usage
+Reads unanalyzed addresses from `addresses.db`, pulls each one's complete fill
+history from the `userFills` endpoint, and computes a 0–100 score.
 
-```
-Component              Memory
-----------------------------------
-Python interpreter     ~30 MB
-Hyperliquid SDK       ~10 MB
-Batch queue (1000)    ~0.2 MB
-Flask dashboard       ~5 MB
-SQLite connection     ~2 MB
-----------------------------------
-Total                 ~50 MB
-```
+It skips traders with fewer than 30 trades, accounts younger than 10 days, and
+balances under $500. Traders skipped for being too large or too active are
+re-checked against the market-maker filters and recorded in the `market_makers`
+table instead. Already-scored traders are refreshed every 7 days.
 
-### CPU Usage
+Concurrency is 3 with a 5 req/sec limit — both lowered from the original
+values because Hyperliquid returns 429s above that. Throughput is roughly
+100–200 traders/hour.
 
-- Idle: <1%
-- Active (100 trades/sec): ~3-5%
-- Database writes: Spike to ~10% during flush
+**The score does not mean what it says it means.** It was designed to test
+whether a trader performs significantly worse than random; it is in practice a
+profit/loss sign classifier. See
+[`../pipeline/analyzer/README.md`](../pipeline/analyzer/README.md) for the
+measurement and the three reasons it collapsed. The module is kept unchanged as
+the baseline that a replacement had to beat.
 
-### Network Usage
+Serves a dashboard on :5001.
 
-- Per coin: ~0.5-2 KB/s (WebSocket)
-- 4 coins: ~2-8 KB/s total
-- Dashboard: ~1 KB/5sec per client
+### `pipeline/contrarian`
 
-### Database Growth
+Every `update_interval_seconds`, fetches the current `clearinghouseState` for
+every trader at or below the score threshold, aggregates their open positions by
+coin, and emits the opposite of the cohort's net positioning.
 
-- ~100 bytes per address
-- 10,000 addresses ≈ 1 MB
-- 1,000,000 addresses ≈ 100 MB
+Aggregation is dual: by trader count, and weighted by position value in USD.
+`primary_metric` on each row records which drove the signal. A signal requires
+at least `min_traders_for_signal` traders holding that coin.
 
-## Error Handling & Recovery
+Signal direction inverts the crowd — if 70%+ of the cohort is long, the signal
+is STRONG SHORT. Confidence is `imbalance * sample_multiplier`, derived in
+[CONFIDENCE_SCORE.md](CONFIDENCE_SCORE.md).
 
-### Connection Failures
+Renders a Rich console dashboard in its own terminal, serves a web dashboard on
+:5002, and optionally pushes signal changes to Telegram.
 
-- **WebSocket disconnect**: SDK automatically reconnects
-- **API unavailable**: Logged, retries handled by SDK
-- **Network issues**: Graceful degradation, local queue retained
+### `pipeline/follower`
 
-### Database Errors
+The same module with the comparison operator flipped: `score >= 90` instead of
+`score <= 10`, and the cohort's direction passed through rather than inverted.
+It is 95% byte-identical to `contrarian` — see
+[`../pipeline/follower/README.md`](../pipeline/follower/README.md) for what the
+other 5% is.
 
-- **Lock timeout**: Retry with exponential backoff
-- **Disk full**: Log error, continue tracking in memory
-- **Corruption**: Detect on startup, backup and rebuild
+### `pipeline/market_makers`
 
-### Application Crashes
+Reads the `market_makers` table rather than `scored_traders`, filters to
+accounts above $50k balance, and tracks their collective net delta per asset,
+classifying it as BULLISH / BEARISH / NEUTRAL against configurable thresholds.
 
-- **SIGINT/SIGTERM**: Flush pending data, graceful exit
-- **Unhandled exception**: Log stack trace, flush data, exit
-- **Out of memory**: Batch size configurable, can reduce
+Market makers move funds between wallets, so the roster goes stale; the module
+needs the fetcher running alongside it to keep discovering new ones.
 
-## Security Considerations
+### `pipeline/observer`
 
-### Data Privacy
+A Flask UI for reviewing traders one at a time — metrics, a cumulative PnL
+chart, and live open positions — and recording a follow / invert / reject
+decision. Built to sanity-check the analyzer's scoring by hand.
 
-- Addresses are public blockchain data (no PII)
-- No authentication required for Hyperliquid API
-- Dashboard accessible to localhost by default
+It is the only module that resolves its database paths to absolute paths, so it
+runs correctly from any working directory.
 
-### Input Validation
+### `research/execution_analyzer`
 
-- Pydantic validates configuration
-- SQL injection prevented (parameterized queries)
-- No user input in WebSocket data processing
+The offline analysis that answered the project's actual question. Scores traders
+on execution timing rather than PnL, tests the result against a pre-registered
+gate, and separately tests whether trader performance persists at all.
 
-### Recommendations for Production
+It reads from a local cache of fills rather than hitting the API, so
+`persistence.py` and `cohort_alpha_check.py` reproduce their published numbers
+with no network access. See
+[`../research/execution_analyzer/README.md`](../research/execution_analyzer/README.md).
 
-1. Add authentication to dashboard endpoints
-2. Use HTTPS for dashboard (nginx proxy)
-3. Rate limit API endpoints
-4. Set up monitoring/alerting
-5. Regular database backups
+### `research/simulator`
 
-## Scalability Analysis
+Paper-trades the contrarian signals against live prices. Superseded by
+`research/notebooks/`, and its Sharpe ratio calculation is wrong — see
+[`../research/simulator/README.md`](../research/simulator/README.md).
 
-### Current Limits
+## Schemas
 
-- **Addresses**: 10M+ (SQLite limit ~281 TB)
-- **Trades/sec**: ~1000 (batch processing bottleneck)
-- **Concurrent coins**: 100+ (WebSocket subscriptions)
+### `data/addresses.db`
 
-### Bottlenecks
+**`addresses`** — one row per unique address seen on the trade feed.
 
-1. **SQLite writes**: Single writer, ~10K inserts/sec
-2. **Network**: WebSocket per coin (max ~1000 coins practical)
-3. **Memory**: Batch queue size (configurable)
+| column | type | |
+|---|---|---|
+| `address` | TEXT | primary key |
+| `first_seen`, `last_seen` | TIMESTAMP | |
+| `trade_count` | INTEGER | fills observed since tracking began |
+| `total_volume_usd` | REAL | |
 
-### Scaling Options
+**`trades`** — raw fills as they arrived. Written but never read; the analyzer
+re-fetches full history from the API.
 
-**Vertical (Single Machine)**:
-- Increase batch size (reduces write frequency)
-- Add more RAM (larger batches)
-- Use SSD (faster SQLite writes)
+### `data/analyzed_traders.db`
 
-**Horizontal (Multiple Machines)**:
-- Split coins across instances
-- Aggregate databases periodically
-- Migrate to PostgreSQL for centralization
+**`scored_traders`** — one row per analyzed trader.
 
-## Phase 2 Preparation
+| column | type | |
+|---|---|---|
+| `trader_id` | INTEGER | autoincrement primary key |
+| `address` | TEXT | unique |
+| `score` | INTEGER | 0–100, constrained |
+| `total_pnl`, `mean_pnl_per_trade`, `std_dev` | REAL | from `closedPnl`, unnormalized dollars |
+| `sharpe_ratio` | REAL | **wrong**: `(mean/std)*sqrt(250)` on per-*fill* PnL, as if each fill were a trading day |
+| `expected_value`, `t_statistic`, `p_value`, `monte_carlo_percentile` | REAL | `monte_carlo_percentile` is a monotone function of `t_statistic` |
+| `num_trades` | INTEGER | >= 30, constrained |
+| `win_rate`, `avg_win`, `avg_loss` | REAL | opening fills carry `closedPnl = 0` and are counted, which depresses `win_rate` |
+| `account_balance` | REAL | |
+| `first_trade_time` | INTEGER | ms epoch |
+| `last_analyzed` | TIMESTAMP | drives the 7-day refresh |
+| `is_statistically_bad` | BOOLEAN | |
 
-The architecture supports these extensions:
+**`analysis_log`** — one row per attempt: `address`, `timestamp`, `status`,
+`error_message`, `trades_fetched`. Useful for telling "skipped" apart from
+"failed".
 
-### 1. Trader Analytics
-- `trades` table already captures detailed history
-- Can calculate PnL, win rate, avg position size
-- Add materialized views for performance
+**`market_makers`** — `address`, `trade_count`, `account_balance`,
+`first_trade_time`, `first_trade_age_hours`, `total_volume_usd`,
+`first_detected`, `last_seen`, `detection_count`.
 
-### 2. Pattern Detection
-- Real-time trade analysis in callback
-- Whale detection (large trades)
-- Unusual activity alerts
+### `data/contrarian_signals.db`
 
-### 3. API Extensions
-```python
-GET /api/trader/{address}     # Detailed trader profile
-GET /api/analytics/volume     # Volume analytics
-GET /api/alerts               # Real-time alerts
-POST /api/watch/{address}     # Add to watchlist
-```
+**`contrarian_signals`** — one row per coin per sweep.
 
-### 4. Machine Learning
-- Export trade data for model training
-- Prediction API integration
-- Feature engineering pipeline
+| column | |
+|---|---|
+| `timestamp`, `coin` | |
+| `signal_direction` | `LONG` / `SHORT` / `NEUTRAL` |
+| `signal_strength` | `STRONG` / `MODERATE` / `WEAK` / `NONE` |
+| `bad_traders_total`, `long_count`, `short_count` | count-based aggregation |
+| `long_percentage`, `short_percentage` | |
+| `long_usd_value`, `short_usd_value`, `long_usd_percentage`, `short_usd_percentage` | size-weighted aggregation |
+| `confidence_score` | `imbalance * sample_multiplier` |
+| `primary_metric` | `count` or `size` — which drove the signal |
+| `current_price` | added later; NULL on early rows |
 
-## Testing Strategy
+**`position_snapshot`** — the individual positions behind each signal:
+`timestamp`, `address`, `coin`, `side`, `size`, `position_value_usd`,
+`entry_price`, `leverage_value`, `unrealized_pnl`. This is the table
+`research/execution_analyzer/wallet_clusters.py` mines to detect multi-wallet
+entities.
 
-### Unit Tests
-- Configuration loading
-- Address extraction logic
-- Database operations
-- Utility functions
+`data/follower_signals.db` mirrors this with a `follower_signals` table, minus
+`current_price`.
 
-### Integration Tests
-- WebSocket connection
-- End-to-end trade processing
-- Dashboard API endpoints
+### `data/mm_positions.db`
 
-### Manual Testing
-- Run on testnet first
-- Verify data consistency
-- Test graceful shutdown
-- Monitor resource usage
+`position_snapshots`, `bias_history`, `mm_activity`. Retention is configurable:
+7 days of snapshots, 30 days of bias history.
 
-## Deployment Options
+### `data/approved_traders.db`
 
-### Development
-```bash
-python fetcher/main.py
-```
+`approved_traders` (with the follow/invert/reject flag) and `rejected_traders`
+(with an optional reason).
 
-### Production (Systemd)
-```ini
-[Unit]
-Description=Hyperliquid Tracker
-After=network.target
+## Design notes
 
-[Service]
-Type=simple
-User=tracker
-WorkingDirectory=/opt/hyper-tracker
-ExecStart=/opt/hyper-tracker/venv/bin/python fetcher/main.py
-Restart=always
+**Why separate databases.** Each module owns exactly one, and reads everything
+else read-only. No write contention, no cross-module transactions, and any
+module can be deleted without breaking the others.
 
-[Install]
-WantedBy=multi-user.target
-```
+**Why SQLite.** Single-writer is sufficient — each database has exactly one
+writer by construction. The largest, `contrarian_signals.db`, reached 1.6GB and
+189,024 signal rows without trouble.
 
-### Docker
-```dockerfile
-FROM python:3.11-slim
-WORKDIR /app
-COPY requirements.txt .
-RUN pip install -r requirements.txt
-COPY . .
-CMD ["python", "fetcher/main.py"]
-```
+**Why the analyzer re-fetches history.** The WebSocket feed only sees trades
+from the moment you connect, so the `trades` table cannot support a
+retrospective analysis. The `userFills` endpoint returns a trader's full
+history.
 
-## Monitoring & Observability
-
-### Logs
-- Location: `logs/tracker.log`
-- Rotation: Implement logrotate
-- Levels: DEBUG, INFO, WARNING, ERROR
-
-### Metrics to Track
-- Trades processed per minute
-- New addresses per hour
-- Database size growth
-- WebSocket reconnection count
-- API response times
-
-### Alerting Triggers
-- WebSocket disconnected >5 minutes
-- No new trades >10 minutes
-- Database size >80% disk
-- Memory usage >90%
-
-## Future Improvements
-
-### Performance
-1. Connection pooling for database
-2. Read replicas for dashboard queries
-3. Redis cache for hot data
-4. Async/await refactor
-
-### Features
-1. Historical data backfill
-2. Export to CSV/JSON
-3. Email/Telegram alerts
-4. Admin panel for configuration
-5. Multi-exchange support
-
-### Infrastructure
-1. Kubernetes deployment
-2. Prometheus metrics
-3. Grafana dashboards
-4. ELK stack for logs
-
----
-
-**Last Updated**: January 2025
-**Version**: 1.0.0
+**Why the timestamps are Europe/Rome.** Display only, and configurable per
+module. Storage is UTC throughout.

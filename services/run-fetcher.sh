@@ -10,7 +10,7 @@ PROJECT_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 source "$PROJECT_ROOT/venv/bin/activate"
 
 # Run fetcher for 15 minutes (900 seconds), then send SIGTERM for graceful shutdown
-cd "$PROJECT_ROOT/fetcher"
+cd "$PROJECT_ROOT/pipeline/fetcher"
 
 # Start the fetcher in the background
 python3 main.py &

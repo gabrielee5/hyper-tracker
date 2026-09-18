@@ -1,6 +1,19 @@
 # Data Access Scripts
 
-This document explains the utility scripts for accessing and exporting trader addresses from the database.
+The utility scripts for reading and exporting the address pool that
+`pipeline/fetcher` collects.
+
+Both live in `pipeline/fetcher/` and resolve their own paths, so they run from
+anywhere:
+
+```bash
+python pipeline/fetcher/query_addresses.py
+python pipeline/fetcher/export_addresses.py
+```
+
+Every other module has its own exporter — see
+[CONFIGURATION.md](CONFIGURATION.md) for where each database lives, and the
+module READMEs for their export flags.
 
 ## query_addresses.py
 
@@ -9,7 +22,7 @@ Displays comprehensive statistics and top traders directly in your terminal.
 ### Usage
 
 ```bash
-python3 query_addresses.py
+python pipeline/fetcher/query_addresses.py
 ```
 
 ### Output
@@ -51,12 +64,12 @@ Exports all addresses from the database to a CSV file for further analysis.
 ### Usage
 
 ```bash
-python3 export_addresses.py
+python pipeline/fetcher/export_addresses.py
 ```
 
 ### Output
 
-- Creates `data/addresses_export.csv` with all addresses
+- Creates `exports/addresses_export_<timestamp>.csv` with all addresses
 - Prints export confirmation and database statistics
 
 ### CSV Format
@@ -82,12 +95,13 @@ The exported CSV contains the following columns:
 ### Example Workflow
 
 ```bash
-# Export addresses
-python3 export_addresses.py
+python pipeline/fetcher/export_addresses.py
+# -> exports/addresses_export_<timestamp>.csv
+```
 
-# Use the CSV with pandas
+```python
 import pandas as pd
-df = pd.read_csv('data/addresses_export.csv')
+df = pd.read_csv("exports/addresses_export_20260918_120000.csv")
 print(df.describe())
 ```
 
@@ -97,7 +111,7 @@ print(df.describe())
 
 Both scripts require:
 - The tracker environment to be set up (dependencies installed)
-- Access to the database file specified in `.env` (default: `data/addresses.db`)
+- `data/addresses.db`, created by `pipeline/fetcher` (path set by `DATABASE_PATH` in `.env`)
 - The tracker to have run and collected some data
 
 ## Notes

@@ -1,0 +1,177 @@
+
+==============================================================================
+PHASE 0 VALIDATION GATE
+==============================================================================
+  variant            open_taker
+  horizons scored    ['1h', '4h', '12h', '1d']   tradable: ['12h', '1d']
+  15m                not computed -- 1h bars cannot resolve it
+  cost assumption    10.0 bp round trip
+
+==============================================================================
+PANEL 0 - contamination audit (what the filters remove)
+==============================================================================
+  addresses cached                 2548
+  fills seen                       4244163
+    on BTC/ETH/SOL                    2111201  ( 49.7%)
+    passive (crossed=False)            960358  ( 22.6%)
+    liquidation-flagged                 72569  (  1.7%)
+    spot legs (dir Buy/Sell)           105923  (  2.5%)
+    TWAP                                    0  (  0.0%)
+
+  maker share per trader: median 5.2%  mean 18.8%
+  MM-like (>60% passive), excluded: 177/1671
+  decisions per trader: median 24  p25 8  p75 81  max 1338
+    with >=  25 decisions: 831/1671
+    with >=  50 decisions: 583/1671
+    with >= 100 decisions: 340/1671
+    with >= 200 decisions: 140/1671
+
+  NOTE: decisions are ~2.5x fewer than usable fills -- clustering collapses
+  multi-fill orders. Power scales with decisions, not fills.
+
+==============================================================================
+PANEL 1 - pooled cohort test (PRIMARY RESULT)
+==============================================================================
+  Null: prices time-shifted under fixed signs/timestamps, one shared offset
+  per draw -- preserves directional bias, return autocorrelation, and the
+  cross-trader correlation of co-positioned traders.
+
+  bad cohort (old score<=5), WINDOW B (out of sample)
+    traders   497 | decisions   19877
+    mean z (12h,1d avg) -0.0425   null -0.0006 +/- 0.0217
+    shared-offset null (cohort = one bet, CONSERVATIVE): z -1.93  p 0.0360
+    independent-offset null (decisions independent, OPTIMISTIC): z -8.04  p 0.0000
+    per horizon: 12h -0.0352  1d -0.0497
+
+  bad cohort, window A (in sample, for reference)
+    traders   497 | decisions   27768
+    mean z (12h,1d avg) -0.0316   null -0.0009 +/- 0.0226
+    shared-offset null (cohort = one bet, CONSERVATIVE): z -1.36  p 0.0673
+    independent-offset null (decisions independent, OPTIMISTIC): z -6.23  p 0.0000
+    per horizon: 12h -0.0271  1d -0.0362
+
+  control (old score>=50), window B
+    traders   128 | decisions    3775
+    mean z (12h,1d avg) -0.1008   null +0.0015 +/- 0.0338
+    shared-offset null (cohort = one bet, CONSERVATIVE): z -3.02  p 0.0100
+    independent-offset null (decisions independent, OPTIMISTIC): z -8.17  p 0.0000
+    per horizon: 12h -0.0865  1d -0.1150
+
+  SPECIFICITY: target -0.0425 vs control -0.1008
+  The target cohort must be WORSE than the control, or the metric cannot
+  select whom to fade -- ranking by it would pick the profitable traders.
+
+==============================================================================
+PANEL 1b - cost arithmetic
+==============================================================================
+  mean 1d realized vol across coins   246 bp
+  pooled window-B mean z              -0.0425 sigma
+  implied gross edge per fade         +10.44 bp
+  round-trip cost                     10.0 bp
+  NET                                 +0.44 bp
+
+==============================================================================
+PANEL 2 - persistence (does window A predict window B?)
+==============================================================================
+  traders with both windows >= 25 decisions: 251
+  Spearman rho(z_A, z_B) = -0.0758   p = 0.2316
+  Pearson  r             = -0.0839
+
+   decile(A)    n   mean z_A   mean z_B  median z_B
+         1     25    -0.3350    -0.0060     -0.0066
+         2     25    -0.1882    -0.0492     -0.0557
+         3     25    -0.1302    -0.0935     -0.0838
+         4     25    -0.0810    -0.0913     -0.0620
+         5     25    -0.0373    -0.0468     -0.0763
+         6     25     0.0039    -0.0091      0.0238
+         7     25     0.0471    -0.0236     -0.0074
+         8     25     0.1024    -0.0116      0.0197
+         9     25     0.1710    -0.1925     -0.1043
+        10     26     0.3117    -0.0955     -0.0985
+
+  bottom decile in A -> mean z_B -0.0060
+  top    decile in A -> mean z_B -0.0955
+  separation (top - bottom) = -0.0894
+  The thesis needs SEPARATION, not just a negative bottom decile: in a
+  population that is negative everywhere, 'bottom decile is negative' is
+  satisfied by noise. Selection only works if bad-in-A stays worse in B.
+
+==============================================================================
+PANEL 3 - baseline: does the OLD PnL score predict timing at all?
+==============================================================================
+  traders 525
+  Spearman rho(old_score, timing z) = +0.1159  p = 0.0078
+  (if ~0, the existing score carries no timing information -- the premise
+   for replacing it rather than tuning it)
+
+     old score     n   mean timing z
+      0-19       384         -0.0385
+     20-39        32         -0.0097
+     40-59        35         -0.0055
+     60-79        39         -0.0046
+     80-99        35         -0.0251
+
+==============================================================================
+PANEL 4 - drift confound check
+==============================================================================
+  Spearman rho(long_bias, timing z) = -0.0860  p = 0.0489
+  mean long bias across traders: 0.566
+  Trailing-drift removal is meant to make this ~0. A strong correlation
+  would mean the score is still measuring (long bias x market drift) --
+  exactly the artifact that made the old contrarian signal 96.6% short.
+
+==============================================================================
+PANEL 5 - per-trader scores with FDR control
+==============================================================================
+  traders with >= 100 decisions (non-MM, span >= 60d): 241
+  pass BH-FDR q<0.10 as badly-timed: 3
+  (unadjusted at alpha=0.05 you would expect ~12 false positives)
+
+  address       n_dec    z_all   z_null       p       q  badness
+  0x1fd440ea      138   -0.344    -3.51   0.000   0.000        0
+  0x162e1fa0      111   -0.328    -2.82   0.004   0.161        3
+  0x21f2388c      105   -0.361    -2.73   0.016   0.310        3
+  0xd4d99a77      120   -0.461    -2.71   0.000   0.000        3
+  0x0584dc01      305   -0.184    -2.70   0.006   0.207        1
+  0x4f7fc070      190   -0.287    -2.68   0.018   0.310        2
+  0xb1347bbf      203   -0.145    -2.67   0.004   0.161        2
+  0x53f815b5      229   -0.440    -2.65   0.000   0.000        1
+  0x845d0886      257   -0.221    -2.56   0.014   0.310        2
+  0xbee194cd      187   -0.207    -2.38   0.026   0.347        3
+  0x05099cb3      155   -0.277    -2.12   0.018   0.310        5
+  0xfe145894      112   -0.274    -2.05   0.012   0.310        8
+
+==============================================================================
+PANEL 6 - variant comparison: opens-only vs all exposure deltas
+==============================================================================
+
+  variant = open_taker
+      bad cohort window B
+    traders   497 | decisions   19877
+    mean z (12h,1d avg) -0.0425   null -0.0013 +/- 0.0216
+    shared-offset null (cohort = one bet, CONSERVATIVE): z -1.91  p 0.0387
+    independent-offset null (decisions independent, OPTIMISTIC): z -7.57  p 0.0000
+    per horizon: 12h -0.0352  1d -0.0497
+
+  variant = all_taker
+      bad cohort window B
+    traders   542 | decisions   35694
+    mean z (12h,1d avg) -0.0216   null -0.0006 +/- 0.0091
+    shared-offset null (cohort = one bet, CONSERVATIVE): z -2.31  p 0.0140
+    independent-offset null (decisions independent, OPTIMISTIC): z -5.28  p 0.0000
+    per horizon: 12h -0.0200  1d -0.0232
+
+==============================================================================
+VERDICT against the kill criteria fixed before the data was seen
+==============================================================================
+  [PASS]  pooled window-B mean z < 0 at BOTH 12h/1d            12h=-0.0352  1d=-0.0497
+  [PASS]  pooled permutation p <= 0.10                         p=0.0360
+  [PASS]  net edge after 10bp cost > 0                         net=+0.44 bp
+  [FAIL]  target cohort times WORSE than the control cohort    target -0.0425 vs control -0.1008
+  [FAIL]  window-A bottom decile is WORSE in B than the top decile bottom -0.0060 vs top -0.0955
+  [FAIL]  rank persistence rho > 0                             rho=-0.0758 p=0.232
+  [FAIL]  >= 300 traders scorable at n_dec>=100                n=241
+
+*** FAIL - do not build Phase 1. The thesis does not survive its own pre-registered test. ***
+
+written: research/execution_analyzer/cache/validation_open_taker.json

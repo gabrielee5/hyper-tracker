@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  Template. __PROJECT_ROOT__ is substituted with the repo path by
+  start-scout.sh, which also rewrites the Minute value below.
+  Do not load this file directly.
+
+  Runs the fetcher for 15 minutes at the top of every hour, via
+  run-fetcher.sh. Collecting continuously is unnecessary - the analyzer
+  consumes addresses far more slowly than the fetcher produces them.
+-->
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.hyper-tracker.fetcher</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>__PROJECT_ROOT__/services/run-fetcher.sh</string>
+    </array>
+
+    <key>WorkingDirectory</key>
+    <string>__PROJECT_ROOT__</string>
+
+    <key>StartCalendarInterval</key>
+    <dict>
+        <key>Minute</key>
+        <integer>0</integer>
+    </dict>
+
+    <key>StandardOutPath</key>
+    <string>__PROJECT_ROOT__/logs/fetcher-stdout.log</string>
+
+    <key>StandardErrorPath</key>
+    <string>__PROJECT_ROOT__/logs/fetcher-stderr.log</string>
+
+    <key>RunAtLoad</key>
+    <false/>
+
+    <key>ProcessType</key>
+    <string>Background</string>
+</dict>
+</plist>

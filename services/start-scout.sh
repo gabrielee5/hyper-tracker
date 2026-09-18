@@ -52,12 +52,18 @@ chmod +x "$PROJECT_ROOT/services/run-fetcher.sh"
 echo "Installing launch agents..."
 echo "  - Fetcher will run at minute $MINUTE of each hour"
 
-# Copy and modify the fetcher plist with the specified minute
-sed "s/<integer>0<\/integer>/<integer>$MINUTE<\/integer>/" \
+# Install both agents, substituting the repo path into the templates.
+# The fetcher plist also gets its schedule minute rewritten.
+mkdir -p ~/Library/LaunchAgents "$PROJECT_ROOT/logs"
+
+sed -e "s|__PROJECT_ROOT__|$PROJECT_ROOT|g" \
+    -e "s|<integer>0</integer>|<integer>$MINUTE</integer>|" \
     "$PROJECT_ROOT/services/com.hyper-tracker.fetcher.plist" > \
     ~/Library/LaunchAgents/com.hyper-tracker.fetcher.plist
 
-cp "$PROJECT_ROOT/services/com.hyper-tracker.analyzer.plist" ~/Library/LaunchAgents/
+sed "s|__PROJECT_ROOT__|$PROJECT_ROOT|g" \
+    "$PROJECT_ROOT/services/com.hyper-tracker.analyzer.plist" > \
+    ~/Library/LaunchAgents/com.hyper-tracker.analyzer.plist
 
 # Load and start services
 echo "Starting fetcher service (runs hourly for 15 minutes)..."

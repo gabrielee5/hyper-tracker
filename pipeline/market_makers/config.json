@@ -1,0 +1,35 @@
+{
+  "analyzer_db_path": "../../data/analyzed_traders.db",
+  "local_db_path": "../../data/mm_positions.db",
+  "api": {
+    "base_url": "https://api.hyperliquid.xyz",
+    "rate_limit_calls": 15,
+    "rate_limit_period": 1.0,
+    "timeout": 10,
+    "max_retries": 3
+  },
+  "monitoring": {
+    "fetch_interval_seconds": 900,
+    "position_snapshot_enabled": true,
+    "min_position_value_usd": 100,
+    "concurrency_limit": 10,
+    "min_mm_balance": 50000,
+    "max_mm_age_hours": 24
+  },
+  "bias_analysis": {
+    "neutral_threshold_percent": 10,
+    "strong_bias_threshold_percent": 30,
+    "weight_by_account_size": false
+  },
+  "dashboard": {
+    "enabled": true,
+    "host": "localhost",
+    "port": 5003,
+    "auto_refresh_seconds": 30,
+    "timezone": "Europe/Rome"
+  },
+  "retention": {
+    "position_snapshots_days": 7,
+    "bias_history_days": 30
+  }
+}

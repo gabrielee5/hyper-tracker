@@ -1,0 +1,48 @@
+# Phase 2 Analyzer Configuration
+
+api:
+  base_url: "https://api.hyperliquid.xyz"
+  rate_limit_calls: 5        # Reduced from 20 to be more conservative
+  rate_limit_period: 1       # seconds
+  timeout: 10
+  max_retries: 3
+  retry_delay_on_429: 30     # Wait 30 seconds when hitting 429
+
+analysis:
+  min_trades: 30
+  p_value_threshold: 0.01
+  alert_score_threshold: 5
+  monte_carlo_iterations: 1000
+  reanalysis_interval_days: 7
+  min_first_trade_age_days: 10  # Minimum age of trader's first trade in days
+  min_account_balance: 500  # Minimum account balance in USD
+
+database:
+  phase1_db_path: "../../data/addresses.db"  # READ-ONLY - main data folder
+  phase2_db_path: "../../data/analyzed_traders.db"  # Analyzer database in main data folder
+  batch_size: 100
+  connection_timeout: 30
+
+processing:
+  concurrent_traders: 3          # Reduced from 10 to avoid rate limits
+  batch_processing_interval: 300  # 5 minutes
+  priority_recent_active_days: 7
+
+dashboard:
+  enabled: true
+  host: "0.0.0.0"
+  port: 5001
+  auto_refresh_seconds: 10
+  timezone: "Europe/Rome"
+
+alerts:
+  console_enabled: true
+  log_file_enabled: true
+  log_path: "../../logs/bad_traders_alert.log"  # Logs in main logs folder
+  dashboard_enabled: true
+
+logging:
+  level: "INFO"
+  file: "../../logs/analyzer.log"  # Logs in main logs folder
+  max_bytes: 10485760  # 10MB
+  backup_count: 5

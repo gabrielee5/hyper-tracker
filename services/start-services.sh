@@ -9,9 +9,12 @@ PROJECT_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 echo "Starting Hyper Tracker contrarian service..."
 echo ""
 
-# Copy plist file to LaunchAgents directory
+# Install the launch agent, substituting the repo path into the template
 echo "Installing launch agent..."
-cp "$PROJECT_ROOT/services/com.hyper-tracker.contrarian.plist" ~/Library/LaunchAgents/
+mkdir -p ~/Library/LaunchAgents "$PROJECT_ROOT/logs"
+sed "s|__PROJECT_ROOT__|$PROJECT_ROOT|g" \
+    "$PROJECT_ROOT/services/com.hyper-tracker.contrarian.plist" > \
+    ~/Library/LaunchAgents/com.hyper-tracker.contrarian.plist
 
 # Load and start service
 echo "Starting contrarian service..."

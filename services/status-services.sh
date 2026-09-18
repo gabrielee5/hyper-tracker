@@ -19,16 +19,6 @@ else
 fi
 echo ""
 
-# Check simulator service
-echo "🎮 SIMULATOR SERVICE:"
-if launchctl list | grep -q "com.hyper-tracker.simulator"; then
-    echo "   Status: ✅ RUNNING"
-    echo "   PID: $(launchctl list | grep com.hyper-tracker.simulator | awk '{print $1}')"
-else
-    echo "   Status: ❌ STOPPED"
-fi
-echo ""
-
 # Check sleep prevention
 echo "💤 SLEEP PREVENTION:"
 if [ -f "$PROJECT_ROOT/services/.caffeinate.pid" ]; then
@@ -50,10 +40,7 @@ echo "==================================================================="
 echo ""
 echo "Contrarian stdout: $PROJECT_ROOT/logs/contrarian-stdout.log"
 echo "Contrarian stderr: $PROJECT_ROOT/logs/contrarian-stderr.log"
-echo "Simulator stdout:  $PROJECT_ROOT/logs/simulator-stdout.log"
-echo "Simulator stderr:  $PROJECT_ROOT/logs/simulator-stderr.log"
 echo ""
 echo "View live logs:"
 echo "  tail -f $PROJECT_ROOT/logs/contrarian-stdout.log"
-echo "  tail -f $PROJECT_ROOT/logs/simulator-stdout.log"
 echo ""
