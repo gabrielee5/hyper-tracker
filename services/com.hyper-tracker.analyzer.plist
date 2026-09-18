@@ -2,28 +2,32 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <!--
   Template. __PROJECT_ROOT__ is substituted with the repo path by
-  start-services.sh when it installs this into ~/Library/LaunchAgents.
-  Do not load this file directly.
+  start-scout.sh. Do not load this file directly.
+
+  Runs continuously - the analyzer is rate-limited to roughly 100-200
+  traders/hour, so it has a permanent backlog.
 -->
 <plist version="1.0">
 <dict>
     <key>Label</key>
-    <string>com.hyper-tracker.contrarian</string>
+    <string>com.hyper-tracker.analyzer</string>
 
     <key>ProgramArguments</key>
     <array>
         <string>__PROJECT_ROOT__/venv/bin/python3</string>
-        <string>__PROJECT_ROOT__/pipeline/contrarian/main.py</string>
+        <string>__PROJECT_ROOT__/pipeline/analyzer/main.py</string>
+        <string>--mode</string>
+        <string>continuous</string>
     </array>
 
     <key>WorkingDirectory</key>
-    <string>__PROJECT_ROOT__/pipeline/contrarian</string>
+    <string>__PROJECT_ROOT__/pipeline/analyzer</string>
 
     <key>StandardOutPath</key>
-    <string>__PROJECT_ROOT__/logs/contrarian-stdout.log</string>
+    <string>__PROJECT_ROOT__/logs/analyzer-stdout.log</string>
 
     <key>StandardErrorPath</key>
-    <string>__PROJECT_ROOT__/logs/contrarian-stderr.log</string>
+    <string>__PROJECT_ROOT__/logs/analyzer-stderr.log</string>
 
     <key>RunAtLoad</key>
     <true/>
