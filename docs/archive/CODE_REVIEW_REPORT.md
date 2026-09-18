@@ -42,7 +42,7 @@ This comprehensive review analyzed the entire hyper-tracker codebase across four
 
 ## 1. FETCHER SUBSECTION
 
-**Location:** `/Users/gabrielefabietti/projects/hyper-tracker/fetcher/`
+**Location:** `pipeline/fetcher/` (then `fetcher/`)
 
 **Purpose:** Real-time data acquisition from Hyperliquid WebSocket API
 
@@ -385,7 +385,7 @@ fetcher/tests/
 
 ## 2. ANALYZER SUBSECTION
 
-**Location:** `/Users/gabrielefabietti/projects/hyper-tracker/analyzer/`
+**Location:** `pipeline/analyzer/` (then `analyzer/`)
 
 **Purpose:** Statistical analysis of trader performance
 
@@ -682,7 +682,7 @@ def _extract_pnl(self, fills: List[Dict]) -> np.ndarray:
 
 ## 3. CONTRARIAN SUBSECTION
 
-**Location:** `/Users/gabrielefabietti/projects/hyper-tracker/contrarian/`
+**Location:** `pipeline/contrarian/` (then `contrarian/`)
 
 **Purpose:** Generate contrarian trading signals from bad trader positioning
 
@@ -951,7 +951,7 @@ else:
 
 ## 4. SIMULATOR SUBSECTION
 
-**Location:** `/Users/gabrielefabietti/projects/hyper-tracker/simulator/`
+**Location:** `research/simulator/` (then `simulator/`)
 
 **Purpose:** Paper trading execution layer for signal backtesting
 

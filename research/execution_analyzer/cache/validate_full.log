@@ -174,4 +174,4 @@ VERDICT against the kill criteria fixed before the data was seen
 
 *** FAIL - do not build Phase 1. The thesis does not survive its own pre-registered test. ***
 
-written: /Users/gabrielefabietti/projects/hyper-tracker/execution-analyzer/cache/validation_open_taker.json
+written: research/execution_analyzer/cache/validation_open_taker.json

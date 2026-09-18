@@ -7,7 +7,7 @@ execution timing on BTC/ETH/SOL bad in a way that (a) persists out of sample and
 Kill criteria are fixed in KILL_* below and evaluated at the end. If this fails,
 nothing downstream gets written -- that is the point of running it first.
 
-Usage:  venv/bin/python3 execution-analyzer/validate.py [--variant open_taker]
+Usage:  venv/bin/python3 research/execution_analyzer/validate.py [--variant open_taker]
 """
 
 import argparse

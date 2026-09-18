@@ -18,7 +18,7 @@ which covers both legs, and gross and net are reported separately -- the
 literature on retail traders says they lose to costs rather than to direction, so
 the distinction is the whole question.
 
-No new network access: reads execution-analyzer/cache, populated by fetch_data.py.
+No new network access: reads research/execution_analyzer/cache, populated by fetch_data.py.
 """
 
 import argparse

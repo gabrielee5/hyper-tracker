@@ -1,8 +1,11 @@
-# execution-analyzer (Phase 0)
+# execution_analyzer
 
 Scores a trader on **execution timing** rather than PnL, to decide who belongs in
-a fade roster. `analyzer/` is deliberately left untouched so its score survives as
-the baseline to beat.
+a fade roster. `pipeline/analyzer/` is deliberately left untouched so its score
+survives as the baseline to beat.
+
+*(This module was written before the repo was reorganised and referred to itself
+as "Phase 0". The numbering is gone; nothing else about it has been changed.)*
 
 ## Why
 
@@ -52,7 +55,7 @@ trip against measured realized vol (BTC 4h 83bp, 1d 216bp), so the required edge
 is 0.25σ at 15m versus 0.05σ at 1d.
 
 **15m is not computed.** 1h bars cannot resolve it, and `candleSnapshot` retains
-15m for only ~35–60 days and 1m for ~1–2 weeks. It needs the Phase 1 rolling
+15m for only ~35–60 days and 1m for ~1–2 weeks. It needs a forward-built rolling
 archive and will only ever apply to future fills.
 
 ## Files
@@ -63,23 +66,25 @@ archive and will only ever apply to future fills.
 | `fetch_data.py` | resumable fill/candle fetch (run in background, ~50 min) |
 | `scoring.py` | decisions, normalization, nulls, FDR, shrinkage |
 | `wallet_clusters.py` | collapse multi-wallet entities before counting evidence |
-| `validate.py` | the Phase 0 gate: six panels plus PASS/FAIL |
+| `validate.py` | the gate: six panels plus PASS/FAIL |
 | `cohort_alpha_check.py` | independent cross-check on data already on disk |
-| `../tests/test_execution_scoring.py` | 24 tests, synthetic data, no network |
+| `../../tests/test_execution_scoring.py` | 24 tests, synthetic data, no network |
 
 ## Run
 
 ```bash
-nohup venv/bin/python3 execution-analyzer/fetch_data.py \
-  > execution-analyzer/cache/fetch.log 2>&1 &     # ~50 min, resumable
-venv/bin/python3 execution-analyzer/validate.py   # the gate
-venv/bin/python3 execution-analyzer/cohort_alpha_check.py
+# all paths relative to the repo root
+nohup venv/bin/python3 research/execution_analyzer/fetch_data.py \
+  > research/execution_analyzer/cache/fetch.log 2>&1 &   # ~50 min, resumable
+venv/bin/python3 research/execution_analyzer/validate.py  # the gate
+venv/bin/python3 research/execution_analyzer/persistence.py
+venv/bin/python3 research/execution_analyzer/cohort_alpha_check.py
 venv/bin/python3 -m pytest tests/test_execution_scoring.py -q
 ```
 
 ## Kill criteria (fixed before the data was seen)
 
-Phase 1 gets built only if **all** hold:
+A live fade pipeline gets built only if **all** hold:
 
 1. pooled window-B mean `z` < 0 at **both** 12h and 1d;
 2. pooled permutation p ≤ 0.10;
