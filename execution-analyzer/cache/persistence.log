@@ -1,0 +1,120 @@
+==============================================================================
+PERSISTENCE TEST -- does trader performance predict itself?
+==============================================================================
+  split           each trader's own history midpoint
+  min trades      20 closing fills per window
+  MM-like         excluded (>60% passive)
+
+  traders usable: 1630
+    dropped, mm_like          338
+    dropped, span<30d         333
+    dropped, too_few_trades   247
+
+  SURVIVORSHIP NOTE: traders with too few trades in window B are dropped,
+  which includes anyone who blew up or quit mid-history. This sample is
+  conditioned on still being active, so it is biased TOWARD persistence.
+
+==============================================================================
+1. RETURN ON TURNOVER, NET OF FEES   (metric: roi_net_bps, bp)
+==============================================================================
+
+  decile(A)    n      mean A      mean B    median B   % B > 0
+        1    163     -558.77      -61.47      -40.45      35.0
+        2    163     -120.37      -28.14      -23.47      31.3
+        3    163      -68.62      -19.22      -32.37      22.7
+        4    163      -46.18      -37.89      -29.64      18.4
+        5    163      -32.29      -41.97      -25.48      18.4
+        6    163      -22.66        5.95      -17.92      22.7
+        7    163      -15.52      -15.86      -16.79      19.6
+        8    163       -8.81       37.85      -15.04      19.6
+        9    163        3.67      -39.16      -21.54      18.4
+       10    163      134.95       27.45      -13.34      43.6
+
+  Spearman rho(A, B) = +0.0662   p = 0.007537   n = 1630
+  cross-sectional window-B mean -17.25  median -21.26  (25.0% positive)
+  top decile minus bottom decile, in window B: +88.92 bp
+  (this is the number a selection strategy would actually harvest; it has
+   to beat ~10 bp of round-trip cost to be worth trading)
+
+==============================================================================
+2. RETURN ON TURNOVER, GROSS   (metric: roi_gross_bps, bp)
+==============================================================================
+
+  decile(A)    n      mean A      mean B    median B   % B > 0
+        1    163     -447.40      -25.98      -27.13      37.4
+        2    163     -105.08       -8.57      -18.44      36.2
+        3    163      -57.21      -27.11      -16.86      32.5
+        4    163      -35.46       -1.97      -17.24      25.2
+        5    163      -22.07      -22.05      -15.38      29.4
+        6    163      -12.42      -21.77       -8.61      33.1
+        7    163       -5.82       28.52       -5.57      37.4
+        8    163        0.62       43.04       -4.64      30.1
+        9    163       13.30      -27.75      -12.94      28.8
+       10    163      144.22       41.93       -5.80      46.6
+
+  Spearman rho(A, B) = +0.0582   p = 0.01873   n = 1630
+  cross-sectional window-B mean -2.17  median -11.64  (33.7% positive)
+  top decile minus bottom decile, in window B: +67.91 bp
+  (this is the number a selection strategy would actually harvest; it has
+   to beat ~10 bp of round-trip cost to be worth trading)
+
+==============================================================================
+3. RISK-ADJUSTED (per-trade t-statistic)   (metric: tstat, t)
+==============================================================================
+
+  decile(A)    n      mean A      mean B    median B   % B > 0
+        1    163      -12.46       -0.23       -1.23      38.7
+        2    163       -5.50       -0.99       -0.82      38.7
+        3    163       -3.68       -8.98       -1.01      39.3
+        4    163       -2.61       -0.35       -0.40      44.2
+        5    163       -1.56       -0.02       -0.31      46.0
+        6    163       -0.65        0.23       -0.36      45.4
+        7    163        0.35        0.13       -0.05      48.5
+        8    163        1.62        0.25        0.35      52.8
+        9    163        3.26       -0.18        0.14      50.9
+       10    163        8.39        1.84        0.58      54.6
+
+  Spearman rho(A, B) = +0.1321   p = 8.631e-08   n = 1630
+  cross-sectional window-B mean -0.83  median -0.36  (45.9% positive)
+  top decile minus bottom decile, in window B: +2.07 t
+  (this is the number a selection strategy would actually harvest; it has
+   to beat ~10 bp of round-trip cost to be worth trading)
+
+==============================================================================
+4. WIN RATE   (metric: win_rate, frac)
+==============================================================================
+
+  decile(A)    n      mean A      mean B    median B   % B > 0
+        1    163        0.18        0.39        0.36      98.2
+        2    163        0.30        0.39        0.38      98.8
+        3    163        0.35        0.43        0.43      98.8
+        4    163        0.40        0.44        0.43      99.4
+        5    163        0.44        0.47        0.45      99.4
+        6    163        0.48        0.48        0.48     100.0
+        7    163        0.53        0.51        0.51      99.4
+        8    163        0.58        0.52        0.54      99.4
+        9    163        0.66        0.59        0.60     100.0
+       10    163        0.81        0.65        0.69      98.8
+
+  Spearman rho(A, B) = +0.4214   p = 3.536e-71   n = 1630
+  cross-sectional window-B mean +0.49  median +0.47  (99.2% positive)
+  top decile minus bottom decile, in window B: +0.26 frac
+  (this is the number a selection strategy would actually harvest; it has
+   to beat ~10 bp of round-trip cost to be worth trading)
+
+==============================================================================
+5. WHERE THE MONEY GOES (window B)
+==============================================================================
+  median gross return on turnover  -11.64 bp
+  median fee drag                   +8.31 bp
+  median net return on turnover    -21.26 bp
+  traders gross-positive 33.7%  ->  net-positive 25.0%
+
+==============================================================================
+VERDICT
+==============================================================================
+  [PASS]  net return on turnover     rho=+0.0662 p=0.007537  top-bottom spread +88.92
+  [PASS]  risk-adjusted              rho=+0.1321 p=8.631e-08  top-bottom spread +2.07
+
+  Performance carries some signal across periods. The size of the
+  top-minus-bottom spread decides whether it is tradable after costs.

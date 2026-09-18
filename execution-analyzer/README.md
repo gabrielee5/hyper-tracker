@@ -183,3 +183,92 @@ signal, and none of the three is present. Anything further should first explain
 why profitable traders score worse than unprofitable ones on forward returns —
 that is the finding with real information in it, and it points away from fading
 flow and toward whatever the winners are actually capturing at sub-12h horizons.
+
+---
+
+# PERSISTENCE TEST (run 2026-09-18)
+
+`persistence.py`. The assumption underneath `analyzer/`, `contrarian/`,
+`follower/` and `observer/`, never tested before: does a trader's performance
+predict itself? Each trader's cached history is split at its own midpoint and
+scored independently in each half. Performance is **return on turnover**
+(`closedPnl / (|sz| * px)` per closing fill), not dollars, so a whale and a
+minnow are on the same scale. 1,630 traders qualified. Output in
+`cache/persistence.log`.
+
+## Performance does persist — weakly, and in the wrong things
+
+| metric | Spearman rho(A, B) | p |
+|---|---|---|
+| net return on turnover | +0.066 | 0.0075 |
+| risk-adjusted (per-trade t) | +0.132 | 8.6e-08 |
+| **win rate** | **+0.421** | **3.5e-71** |
+
+So the null of "no persistence at all" is rejected. But three things make it
+untradable.
+
+**1. Every decile loses money going forward.** Ranked on window A, *every*
+decile has a negative median window-B net return, including the best:
+−13.34 bp. Only 25.0% of traders are net-positive in window B at all. Selecting
+the top decile of past performers still hands you a trader who loses money.
+
+**2. The most persistent trait is anti-predictive.** Win rate is by far the
+strongest signal (rho = 0.42) and it predicts *worse* profitability:
+
+| | window-B win rate | median net ROI | % profitable |
+|---|---|---|---|
+| high win-rate decile | 0.652 | **−30.26 bp** | 31% |
+| low win-rate decile | 0.388 | **−19.54 bp** | 30% |
+
+Traders who win often lose more — small profits taken, losses left to run. The
+most reliably measurable thing about a trader is useless for selection, and
+inverted at that.
+
+**3. What persists is cost structure, not edge.** Median gross return on
+turnover is −11.64 bp, median fee drag +8.31 bp, median net −21.26 bp. Going
+gross→net moves the profitable share from 33.7% to 25.0%. The *top* decile is
+roughly break-even gross (−7.42 bp) and loses mainly to fees (7.48 bp) — which
+is the Barber & Odean and Taiwan day-trader result reproduced on Hyperliquid
+perps.
+
+## And direction — the part a fade would actually capture — does not persist
+
+Crossing this against the timing experiment: past PnL does not rank future
+directional quality. Spearman rho(window-A net ROI, window-B timing z) =
+**−0.022, p = 0.57** across 668 traders.
+
+The bottom decile by past PnL did show a significant pooled timing z of −0.139
+(p = 0.013), which would be the fade case. It does not survive scrutiny:
+
+| cut | traders | trader-mean z | pooled p |
+|---|---|---|---|
+| bottom 5% | 27 | −0.112 | 0.056 |
+| bottom 10% | 43 | −0.132 | 0.013 |
+| bottom 20% | 109 | −0.031 | 0.061 |
+| bottom 30% | 170 | −0.032 | 0.023 |
+
+A real "worse traders are more directionally wrong" gradient would strengthen
+monotonically toward the tail. This peaks at 10% and collapses by 20%. It also
+halves when the 3 most extreme of 43 traders are dropped (−0.132 → −0.070). One
+significant p-value at one cut point, after this many cuts, is not evidence.
+
+## Conclusion
+
+**Both directions are closed.**
+
+- **Following winners** fails because there are no winners to follow: the best
+  decile of past performers still has a negative median forward return.
+- **Fading losers** fails because the persistent part of their loss is costs,
+  turnover and risk management — not direction. You cannot capture a
+  counterparty's fee drag by taking the other side of their trade. To harvest
+  what these traders lose you would have to be their exchange, not their
+  counterparty.
+
+This is consistent across three independent tests on this data: the cohort alpha
+check (no positive alpha on any coin), the execution-timing gate (no specificity,
+no persistence), and this one (persistence exists but not in the tradable
+component).
+
+The honest reading is that trader selection does not work on this dataset, in
+either direction, and further variations on scoring are not where the remaining
+value is.
