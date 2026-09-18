@@ -51,3 +51,52 @@ I monitored more closely btc, eth and sol and I found that the signal was not ch
 I am still convinced that one can find alpha by inverting the trades of bad market paricipants. The biggest flow of this project is the valuation method imo. I think a big change is needed there and a bit more thought.
 
 Overall fun stuff. I will keep this for reference.
+
+---
+
+## Update 2026-09-18: the valuation method was measured
+
+Your two instincts in the notes above — *"the score system needs to be checked
+because I am not sure is very effective"* and *"the biggest flaw of this project
+is the valuation method"* — were both right, and it turned out to be worse than
+"not very effective".
+
+**The analyzer score is a PnL-sign classifier.** All 1,723 traders at
+`score <= 5` have negative total PnL; all 1,284 at `score >= 95` have positive.
+Perfect separation. It is not testing anyone against random. Details in
+`analyzer/README.md`.
+
+**A replacement was built and it also failed.** `execution-analyzer/` scores
+traders on execution *timing* instead of PnL: cluster fills into decisions, throw
+away liquidations, maker fills, spot legs and TWAP slices, measure the
+drift-demeaned and volatility-normalized forward return at 12h and 1d, and test
+against a null that time-shifts prices under fixed timestamps. Run on 2,548
+traders and 4.2M fills, it failed its own pre-registered gate on two counts that
+matter more than the statistics:
+
+- **No specificity.** The traders the old score calls *good* — the ones making
+  money — time *worse* than the bad ones (−0.10 vs −0.04). Ranking by this metric
+  to build a fade roster would preferentially pick the profitable traders.
+- **No persistence.** Timing quality in one half of a trader's history does not
+  predict the other half (rho = −0.076, p = 0.23), and the ordering inverts: the
+  worst decile in period A comes back *least* negative in period B.
+
+**Why fading looks hard from here.** Median holding period in the sample is 3.8
+hours, against measurement horizons of 12h and 1d. The traders who score worst
+are disproportionately ones trading a shorter timeframe successfully — they were
+right on their own clock and closed hours before the horizon we measured. Fading
+them means betting against a position that no longer exists.
+
+**Also worth knowing: the contrarian signal was close to a constant.** Over 3,732
+signals per coin, BTC was SHORT 96.6% of the time (ETH 80.6%, SOL 85.3%) while
+BTC fell 12.7%. The cohort sits at ~60% long and never drops below 37%, so the
+raw positioning level can essentially never produce a LONG signal. Whatever edge
+that period showed is arithmetically hard to separate from `-1 x drift`. An
+independent check on the stored snapshots agrees: fading the cohort's net delta
+earns no significant alpha on any coin (BTC +3.4bp/day t=0.70, ETH −4.6 t=−0.64,
+SOL −16.3 t=−1.37, Newey-West, net of cost).
+
+The thesis is not dead because the code was wrong — the code was rebuilt properly
+and the thesis still failed the test. What has *not* been tested anywhere in this
+project is whether trader performance is persistent at all. Every module here
+assumes it is. That is the next thing to check.

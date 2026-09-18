@@ -69,3 +69,5 @@ services/.caffeinate-scout.pid
 bot.txt
 TO-DO.txt
 BEASTS.txt
+
+/execution-analyzer/cache/fills

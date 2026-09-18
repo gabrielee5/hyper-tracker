@@ -1,6 +1,45 @@
 # Hyperliquid Trader Analyzer - Phase 2
 
+> **⚠️ CORRECTION (2026-09-18): this module does not do what the rest of this
+> README says it does.** It is documented here as intended, and kept running as a
+> baseline, but it was measured and the claim below is false. See
+> [Measured behaviour](#measured-behaviour-2026-09-18) before relying on `score`.
+
 A sophisticated statistical analysis system that evaluates trader performance on Hyperliquid to identify those performing significantly worse than random chance.
+
+## Measured behaviour (2026-09-18)
+
+`score` is a profit/loss sign classifier, not a test against random. In
+`data/analyzed_traders.db`, across 6,911 scored traders:
+
+| group | total_pnl < 0 | total_pnl >= 0 |
+|---|---|---|
+| `score <= 5` | **1723** | **0** |
+| `score >= 95` | **0** | **1284** |
+
+Perfect separation in both directions. Three reasons it collapsed:
+
+1. **The Monte Carlo adds nothing.** `_run_monte_carlo_simulation` draws
+   `N(0, the trader's own sigma)`, so the percentile of the trader's mean within
+   those draws is a monotone function of `mean/(sigma/sqrt(n))` — the
+   t-statistic computed three lines earlier. It is one test reported twice.
+2. **The null is wrong.** `E[closedPnl] = 0` is not "random". A random trader on
+   a perp DEX has *negative* expected PnL from fees and funding, so "worse than
+   random" as implemented means "lost money", which is most participants.
+3. **The test is saturated.** `avg(num_trades)` is 1373, and at that n a t-test
+   rejects on any trivial nonzero mean. 1682/6911 clear p < 0.01, so
+   significance carries no information here.
+
+Also: `closedPnl` is unnormalized dollars, so it tracks position size more than
+decision quality; opening fills carry `closedPnl = "0.0"` and are counted as
+observations (hence `avg(win_rate) = 0.201` among "bad" traders); there is no
+multiple-testing correction across 6,911 traders; and nothing verifies that a
+trader scored bad in one period is still bad in the next.
+
+A replacement based on execution timing was built and tested in
+`execution-analyzer/`. **It also failed** — see that module's README. Consumers
+of this score (`contrarian/`, `follower/`, `observer/`) should be read with both
+results in mind.
 
 ## 🎯 Purpose
 

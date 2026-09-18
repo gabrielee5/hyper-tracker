@@ -1,0 +1,72 @@
+{
+  "variant": "open_taker",
+  "pooled": {
+    "obs": -0.04247578905738145,
+    "null_mean": -0.0006417368953518779,
+    "null_sd": 0.02166020187407395,
+    "z_vs_null": -1.9313786826752797,
+    "p_worse": 0.036,
+    "n_draws": 3000,
+    "p_worse_indep": 0.0,
+    "null_sd_indep": 0.005185223497484202,
+    "z_vs_null_indep": -8.037603252754545,
+    "per_horizon": {
+      "12h": -0.035242563451111576,
+      "1d": -0.049709014663651324
+    },
+    "n_dec": 19877,
+    "n_traders": 497,
+    "control_obs": -0.10076411057698217,
+    "net_bps": 0.44001323765135325
+  },
+  "persistence": {
+    "rho": -0.07578261270446317,
+    "p": 0.23155978748183254,
+    "bottom_decile_zB": -0.006004457577578397,
+    "top_decile_zB": -0.09545152293132388,
+    "separation": -0.08944706535374548,
+    "n": 251
+  },
+  "scores": {
+    "n_scorable": 241,
+    "n_bad": 3
+  },
+  "checks": [
+    {
+      "name": "pooled window-B mean z < 0 at BOTH 12h/1d",
+      "pass": true,
+      "detail": "12h=-0.0352  1d=-0.0497"
+    },
+    {
+      "name": "pooled permutation p <= 0.10",
+      "pass": true,
+      "detail": "p=0.0360"
+    },
+    {
+      "name": "net edge after 10bp cost > 0",
+      "pass": true,
+      "detail": "net=+0.44 bp"
+    },
+    {
+      "name": "target cohort times WORSE than the control cohort",
+      "pass": false,
+      "detail": "target -0.0425 vs control -0.1008"
+    },
+    {
+      "name": "window-A bottom decile is WORSE in B than the top decile",
+      "pass": false,
+      "detail": "bottom -0.0060 vs top -0.0955"
+    },
+    {
+      "name": "rank persistence rho > 0",
+      "pass": false,
+      "detail": "rho=-0.0758 p=0.232"
+    },
+    {
+      "name": ">= 300 traders scorable at n_dec>=100",
+      "pass": false,
+      "detail": "n=241"
+    }
+  ],
+  "verdict": "FAIL"
+}

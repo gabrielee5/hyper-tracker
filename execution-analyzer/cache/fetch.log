@@ -1,0 +1,119 @@
+candles BTC 1h: 4801
+candles ETH 1h: 4801
+candles SOL 1h: 4801
+sample: 2548 addresses (1723 flagged bad by old score)
+cached already: 0 | to fetch: 2548
+  25/2548 fetched | 0 failed | 2.65s/addr | ETA 111m
+  50/2548 fetched | 0 failed | 2.61s/addr | ETA 109m
+candles BTC 1h: 4801
+candles ETH 1h: 4801
+candles SOL 1h: 4801
+sample: 2548 addresses (1723 flagged bad by old score)
+cached already: 56 | to fetch: 2492
+  25/2492 fetched | 0 failed | 1.14s/addr | ETA 47m
+  50/2492 fetched | 0 failed | 1.55s/addr | ETA 63m
+  75/2492 fetched | 0 failed | 1.44s/addr | ETA 58m
+  100/2492 fetched | 0 failed | 1.66s/addr | ETA 66m
+  125/2492 fetched | 0 failed | 1.78s/addr | ETA 70m
+  150/2492 fetched | 0 failed | 1.85s/addr | ETA 72m
+  175/2492 fetched | 0 failed | 1.92s/addr | ETA 74m
+  200/2492 fetched | 0 failed | 1.95s/addr | ETA 74m
+  225/2492 fetched | 0 failed | 1.96s/addr | ETA 74m
+  250/2492 fetched | 0 failed | 1.88s/addr | ETA 70m
+  275/2492 fetched | 0 failed | 1.92s/addr | ETA 71m
+  300/2492 fetched | 0 failed | 1.95s/addr | ETA 71m
+  325/2492 fetched | 0 failed | 1.98s/addr | ETA 71m
+  350/2492 fetched | 0 failed | 2.00s/addr | ETA 71m
+  375/2492 fetched | 0 failed | 2.03s/addr | ETA 71m
+  400/2492 fetched | 0 failed | 2.04s/addr | ETA 71m
+  425/2492 fetched | 0 failed | 2.05s/addr | ETA 71m
+  450/2492 fetched | 0 failed | 2.06s/addr | ETA 70m
+  475/2492 fetched | 2 failed | 2.53s/addr | ETA 85m
+  500/2492 fetched | 27 failed | 3.12s/addr | ETA 103m
+candles BTC 1h: 4801
+candles ETH 1h: 4801
+candles SOL 1h: 4801
+sample: 2548 addresses (1723 flagged bad by old score)
+cached already: 529 | to fetch: 2019
+  25/2019 fetched | 0 failed | 1.54s/addr | ETA 51m
+  50/2019 fetched | 0 failed | 2.08s/addr | ETA 68m
+  75/2019 fetched | 0 failed | 2.25s/addr | ETA 73m
+  100/2019 fetched | 0 failed | 2.10s/addr | ETA 67m
+  125/2019 fetched | 0 failed | 1.93s/addr | ETA 61m
+  150/2019 fetched | 0 failed | 1.97s/addr | ETA 61m
+  175/2019 fetched | 0 failed | 1.98s/addr | ETA 61m
+  200/2019 fetched | 0 failed | 1.89s/addr | ETA 57m
+  225/2019 fetched | 0 failed | 1.88s/addr | ETA 56m
+  250/2019 fetched | 0 failed | 1.91s/addr | ETA 56m
+  275/2019 fetched | 0 failed | 1.94s/addr | ETA 56m
+  300/2019 fetched | 0 failed | 1.97s/addr | ETA 56m
+  325/2019 fetched | 0 failed | 1.91s/addr | ETA 54m
+  350/2019 fetched | 0 failed | 1.92s/addr | ETA 53m
+  375/2019 fetched | 0 failed | 1.94s/addr | ETA 53m
+  400/2019 fetched | 0 failed | 1.96s/addr | ETA 53m
+  425/2019 fetched | 0 failed | 1.98s/addr | ETA 53m
+  450/2019 fetched | 0 failed | 2.00s/addr | ETA 52m
+  475/2019 fetched | 0 failed | 2.01s/addr | ETA 52m
+  500/2019 fetched | 0 failed | 1.97s/addr | ETA 50m
+  525/2019 fetched | 0 failed | 1.98s/addr | ETA 49m
+  550/2019 fetched | 0 failed | 1.95s/addr | ETA 48m
+  575/2019 fetched | 0 failed | 1.96s/addr | ETA 47m
+  600/2019 fetched | 0 failed | 1.97s/addr | ETA 47m
+  625/2019 fetched | 0 failed | 1.94s/addr | ETA 45m
+  650/2019 fetched | 0 failed | 1.95s/addr | ETA 44m
+  675/2019 fetched | 0 failed | 1.96s/addr | ETA 44m
+  700/2019 fetched | 0 failed | 1.97s/addr | ETA 43m
+  725/2019 fetched | 0 failed | 1.98s/addr | ETA 43m
+  750/2019 fetched | 0 failed | 1.95s/addr | ETA 41m
+  775/2019 fetched | 0 failed | 1.96s/addr | ETA 41m
+  800/2019 fetched | 0 failed | 1.97s/addr | ETA 40m
+  825/2019 fetched | 0 failed | 1.94s/addr | ETA 39m
+  850/2019 fetched | 0 failed | 1.92s/addr | ETA 37m
+  875/2019 fetched | 0 failed | 1.93s/addr | ETA 37m
+  900/2019 fetched | 0 failed | 1.94s/addr | ETA 36m
+  925/2019 fetched | 0 failed | 1.94s/addr | ETA 35m
+  950/2019 fetched | 0 failed | 1.93s/addr | ETA 34m
+  975/2019 fetched | 0 failed | 1.92s/addr | ETA 33m
+  1000/2019 fetched | 0 failed | 1.92s/addr | ETA 33m
+  1025/2019 fetched | 0 failed | 1.92s/addr | ETA 32m
+  1050/2019 fetched | 0 failed | 1.93s/addr | ETA 31m
+  1075/2019 fetched | 0 failed | 1.94s/addr | ETA 31m
+  1100/2019 fetched | 0 failed | 1.92s/addr | ETA 29m
+  1125/2019 fetched | 0 failed | 1.93s/addr | ETA 29m
+  1150/2019 fetched | 0 failed | 1.93s/addr | ETA 28m
+  1175/2019 fetched | 0 failed | 1.94s/addr | ETA 27m
+  1200/2019 fetched | 0 failed | 1.95s/addr | ETA 27m
+  1225/2019 fetched | 0 failed | 1.95s/addr | ETA 26m
+  1250/2019 fetched | 0 failed | 1.96s/addr | ETA 25m
+  1275/2019 fetched | 0 failed | 1.97s/addr | ETA 24m
+  1300/2019 fetched | 0 failed | 1.95s/addr | ETA 23m
+  1325/2019 fetched | 0 failed | 1.94s/addr | ETA 22m
+  1350/2019 fetched | 0 failed | 1.93s/addr | ETA 21m
+  1375/2019 fetched | 0 failed | 1.92s/addr | ETA 21m
+  1400/2019 fetched | 0 failed | 1.93s/addr | ETA 20m
+  1425/2019 fetched | 0 failed | 1.92s/addr | ETA 19m
+  1450/2019 fetched | 0 failed | 1.90s/addr | ETA 18m
+  1475/2019 fetched | 0 failed | 1.91s/addr | ETA 17m
+  1500/2019 fetched | 0 failed | 1.92s/addr | ETA 17m
+  1525/2019 fetched | 0 failed | 1.90s/addr | ETA 16m
+  1550/2019 fetched | 0 failed | 1.91s/addr | ETA 15m
+  1575/2019 fetched | 0 failed | 1.90s/addr | ETA 14m
+  1600/2019 fetched | 0 failed | 1.90s/addr | ETA 13m
+  1625/2019 fetched | 0 failed | 1.91s/addr | ETA 13m
+  1650/2019 fetched | 0 failed | 1.89s/addr | ETA 12m
+  1675/2019 fetched | 0 failed | 1.90s/addr | ETA 11m
+  1700/2019 fetched | 0 failed | 1.90s/addr | ETA 10m
+  1725/2019 fetched | 0 failed | 1.91s/addr | ETA 9m
+  1750/2019 fetched | 0 failed | 1.90s/addr | ETA 9m
+  1775/2019 fetched | 0 failed | 1.89s/addr | ETA 8m
+  1800/2019 fetched | 0 failed | 1.89s/addr | ETA 7m
+  1825/2019 fetched | 0 failed | 1.90s/addr | ETA 6m
+  1850/2019 fetched | 0 failed | 1.89s/addr | ETA 5m
+  1875/2019 fetched | 0 failed | 1.89s/addr | ETA 5m
+  1900/2019 fetched | 0 failed | 1.90s/addr | ETA 4m
+  1925/2019 fetched | 0 failed | 1.89s/addr | ETA 3m
+  1950/2019 fetched | 0 failed | 1.88s/addr | ETA 2m
+  1975/2019 fetched | 0 failed | 1.88s/addr | ETA 1m
+  2000/2019 fetched | 0 failed | 1.89s/addr | ETA 1m
+  2019/2019 fetched | 0 failed | 1.89s/addr | ETA 0m
+DONE. cached=2548/2548 failed=0
