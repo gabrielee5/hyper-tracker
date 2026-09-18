@@ -21,20 +21,20 @@
     }
   },
   "database": {
-    "signals_db": "../data/contrarian_signals.db",
-    "simulator_db": "../data/simulator.db"
+    "signals_db": "../../data/contrarian_signals.db",
+    "simulator_db": "../../data/simulator.db"
   },
   "api": {
     "hyperliquid_rest": "https://api.hyperliquid.xyz",
     "price_update_interval_seconds": 1800
   },
   "dashboard": {
-    "port": 5003,
+    "port": 5007,
     "update_interval_seconds": 1800,
     "timezone": "Europe/Rome"
   },
   "logging": {
     "level": "INFO",
-    "file": "../logs/simulator.log"
+    "file": "../../logs/simulator.log"
   }
 }

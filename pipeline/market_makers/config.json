@@ -1,6 +1,6 @@
 {
-  "analyzer_db_path": "../data/analyzed_traders.db",
-  "local_db_path": "../data/mm_positions.db",
+  "analyzer_db_path": "../../data/analyzed_traders.db",
+  "local_db_path": "../../data/mm_positions.db",
   "api": {
     "base_url": "https://api.hyperliquid.xyz",
     "rate_limit_calls": 15,

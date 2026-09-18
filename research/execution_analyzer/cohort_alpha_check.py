@@ -22,7 +22,7 @@ from pathlib import Path
 
 import numpy as np
 
-ROOT = Path(__file__).resolve().parent.parent
+ROOT = Path(__file__).resolve().parents[2]
 SIGNALS_DB = ROOT / "data" / "contrarian_signals.db"
 COINS = ("BTC", "ETH", "SOL")
 COST_BPS = 10.0

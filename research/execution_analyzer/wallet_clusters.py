@@ -21,7 +21,7 @@ import sqlite3
 from collections import Counter
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parent.parent
+ROOT = Path(__file__).resolve().parents[2]
 SIGNALS_DB = ROOT / "data" / "contrarian_signals.db"
 CACHE = Path(__file__).parent / "cache" / "wallet_clusters.json"
 

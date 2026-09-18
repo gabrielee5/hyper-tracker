@@ -25,7 +25,7 @@ import hl
 import scoring
 import wallet_clusters
 
-ROOT = Path(__file__).resolve().parent.parent
+ROOT = Path(__file__).resolve().parents[2]
 SCORED_DB = ROOT / "data" / "analyzed_traders.db"
 
 MIN_DEC_WINDOW = 25          # per window, for the persistence panel

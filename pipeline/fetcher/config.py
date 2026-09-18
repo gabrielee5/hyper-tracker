@@ -24,7 +24,7 @@ class Config(BaseModel):
     track_role: str = Field(default="both")  # DEPRECATED: always tracks 'both' (public trade data lacks taker/maker info)
 
     # Database Configuration
-    database_path: Path = Field(default=Path("../data/addresses.db"))
+    database_path: Path = Field(default=Path("../../data/addresses.db"))
 
     # Batch Processing
     batch_size: int = Field(default=1000)
@@ -72,7 +72,7 @@ class Config(BaseModel):
             raise ValueError(f"Invalid TRACK_ROLE: {track_role}. Must be 'maker', 'taker', or 'both'")
 
         # Parse paths
-        database_path = Path(os.getenv("DATABASE_PATH", "../data/addresses.db"))
+        database_path = Path(os.getenv("DATABASE_PATH", "../../data/addresses.db"))
         log_file = Path(os.getenv("LOG_FILE", "logs/tracker.log"))
 
         # Parse numeric values

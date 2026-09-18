@@ -18,8 +18,8 @@ analysis:
   min_account_balance: 500  # Minimum account balance in USD
 
 database:
-  phase1_db_path: "../data/addresses.db"  # READ-ONLY - main data folder
-  phase2_db_path: "../data/analyzed_traders.db"  # Analyzer database in main data folder
+  phase1_db_path: "../../data/addresses.db"  # READ-ONLY - main data folder
+  phase2_db_path: "../../data/analyzed_traders.db"  # Analyzer database in main data folder
   batch_size: 100
   connection_timeout: 30
 
@@ -38,11 +38,11 @@ dashboard:
 alerts:
   console_enabled: true
   log_file_enabled: true
-  log_path: "../logs/bad_traders_alert.log"  # Logs in main logs folder
+  log_path: "../../logs/bad_traders_alert.log"  # Logs in main logs folder
   dashboard_enabled: true
 
 logging:
   level: "INFO"
-  file: "../logs/analyzer.log"  # Logs in main logs folder
+  file: "../../logs/analyzer.log"  # Logs in main logs folder
   max_bytes: 10485760  # 10MB
   backup_count: 5

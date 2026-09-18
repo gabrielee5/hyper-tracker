@@ -1,24 +1,8 @@
 # Python
 __pycache__/
 *.py[cod]
-*$py.class
 *.so
-.Python
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
 *.egg-info/
-.installed.cfg
-*.egg
 
 # Jupyter
 .ipynb_checkpoints/
@@ -36,21 +20,32 @@ ENV/
 *.swo
 *~
 
-# Environment variables
+# Secrets
 .env
+pipeline/contrarian/.env
 
-# Database - All databases now in main data/ folder
-fetcher/data/*.db
-fetcher/data/*.db-journal
-data/
+# Databases - every module writes into the shared root data/
+/data/
+**/data/*.db
+**/data/*.db-journal
+**/data/*.db-wal
+**/data/*.db-shm
 
-# CSV Exports
-analyzer/exports/
-exports/
+# CSV exports
+/exports/
+**/exports/
 
-# Logs - All logs now in main logs/ folder
-fetcher/logs/*.log
-logs/
+# Logs - every module writes into the shared root logs/
+/logs/
+**/logs/*.log
+
+# Cached fills: 2548 traders, ~242MB. Rebuild with
+# research/execution_analyzer/fetch_data.py (~50 min).
+/research/execution_analyzer/cache/fills/
+
+# launchd runtime state
+services/.caffeinate.pid
+services/.caffeinate-scout.pid
 
 # OS
 .DS_Store
@@ -60,14 +55,11 @@ Thumbs.db
 .pytest_cache/
 .coverage
 htmlcov/
-phase4_simulator/simulator.log
-phase4_simulator/simulator.db
-services/.caffeinate.pid
-services/.caffeinate-scout.pid
 
-# others
-bot.txt
+# Personal scratch notes (not part of the project)
 TO-DO.txt
 BEASTS.txt
 
-/execution-analyzer/cache/fills
+# stale pre-consolidation leftovers
+**/data/*.csv
+**/data/*.backup_*

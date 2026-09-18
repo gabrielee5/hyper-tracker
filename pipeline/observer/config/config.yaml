@@ -8,8 +8,8 @@ api:
   cache_ttl_seconds: 300  # 5 minutes for API data
 
 database:
-  analyzed_traders_db: "../data/analyzed_traders.db"  # Read-only source
-  approved_traders_db: "../data/approved_traders.db"  # Observer's database
+  analyzed_traders_db: "../../data/analyzed_traders.db"  # Read-only source
+  approved_traders_db: "../../data/approved_traders.db"  # Observer's database
   connection_timeout: 30
 
 dashboard:

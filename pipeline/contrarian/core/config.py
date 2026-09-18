@@ -37,8 +37,8 @@ class APIConfig:
 @dataclass
 class DatabaseConfig:
     """Database paths."""
-    phase2_path: str = "../data/analyzed_traders.db"
-    contrarian_path: str = "../data/contrarian_signals.db"
+    phase2_path: str = "../../data/analyzed_traders.db"
+    contrarian_path: str = "../../data/contrarian_signals.db"
 
 
 @dataclass
@@ -131,8 +131,8 @@ class ConrarianConfig:
                 "concurrency_limit": 10
             },
             "database": {
-                "phase2_path": "../data/analyzed_traders.db",
-                "contrarian_path": "../data/contrarian_signals.db"
+                "phase2_path": "../../data/analyzed_traders.db",
+                "contrarian_path": "../../data/contrarian_signals.db"
             },
             "dashboard": {
                 "refresh_rate": 5,
@@ -190,8 +190,8 @@ class ConrarianConfig:
         """Database configuration."""
         db_config = self._config.get("database", {})
         return DatabaseConfig(
-            phase2_path=db_config.get("phase2_path", "../data/analyzed_traders.db"),
-            contrarian_path=db_config.get("contrarian_path", "../data/contrarian_signals.db")
+            phase2_path=db_config.get("phase2_path", "../../data/analyzed_traders.db"),
+            contrarian_path=db_config.get("contrarian_path", "../../data/contrarian_signals.db")
         )
 
     @property

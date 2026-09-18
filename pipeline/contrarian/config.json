@@ -15,8 +15,8 @@
     "concurrency_limit": 10
   },
   "database": {
-    "phase2_path": "../data/analyzed_traders.db",
-    "contrarian_path": "../data/contrarian_signals.db"
+    "phase2_path": "../../data/analyzed_traders.db",
+    "contrarian_path": "../../data/contrarian_signals.db"
   },
   "dashboard": {
     "refresh_rate": 5,

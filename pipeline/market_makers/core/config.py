@@ -25,7 +25,7 @@ class APIConfig:
 @dataclass
 class DatabaseConfig:
     """Database paths."""
-    analyzer_db_path: str = "../analyzer/data/analyzed_traders.db"
+    analyzer_db_path: str = "../../data/analyzed_traders.db"
     local_db_path: str = "./data/mm_positions.db"
 
 
@@ -100,7 +100,7 @@ class MMMonitorConfig:
     def _get_defaults(self) -> Dict[str, Any]:
         """Get default configuration."""
         return {
-            "analyzer_db_path": "../analyzer/data/analyzed_traders.db",
+            "analyzer_db_path": "../../data/analyzed_traders.db",
             "local_db_path": "./data/mm_positions.db",
             "api": {
                 "base_url": "https://api.hyperliquid.xyz",
@@ -151,7 +151,7 @@ class MMMonitorConfig:
     def database(self) -> DatabaseConfig:
         """Database configuration."""
         return DatabaseConfig(
-            analyzer_db_path=self._config.get("analyzer_db_path", "../analyzer/data/analyzed_traders.db"),
+            analyzer_db_path=self._config.get("analyzer_db_path", "../../data/analyzed_traders.db"),
             local_db_path=self._config.get("local_db_path", "./data/mm_positions.db")
         )
 

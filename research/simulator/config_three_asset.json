@@ -22,8 +22,8 @@
     }
   },
   "database": {
-    "signals_db": "../data/contrarian_signals.db",
-    "simulator_db": "../data/simulator_three_asset.db"
+    "signals_db": "../../data/contrarian_signals.db",
+    "simulator_db": "../../data/simulator_three_asset.db"
   },
   "api": {
     "hyperliquid_rest": "https://api.hyperliquid.xyz",
@@ -36,6 +36,6 @@
   },
   "logging": {
     "level": "INFO",
-    "file": "../logs/simulator_three_asset.log"
+    "file": "../../logs/simulator_three_asset.log"
   }
 }

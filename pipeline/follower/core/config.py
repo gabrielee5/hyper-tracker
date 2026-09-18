@@ -35,8 +35,8 @@ class APIConfig:
 @dataclass
 class DatabaseConfig:
     """Database paths."""
-    phase2_path: str = "../data/analyzed_traders.db"
-    follower_path: str = "../data/follower_signals.db"
+    phase2_path: str = "../../data/analyzed_traders.db"
+    follower_path: str = "../../data/follower_signals.db"
 
 
 @dataclass
@@ -110,8 +110,8 @@ class FollowerConfig:
                 "concurrency_limit": 10
             },
             "database": {
-                "phase2_path": "../data/analyzed_traders.db",
-                "follower_path": "../data/follower_signals.db"
+                "phase2_path": "../../data/analyzed_traders.db",
+                "follower_path": "../../data/follower_signals.db"
             },
             "dashboard": {
                 "refresh_rate": 5,
@@ -165,8 +165,8 @@ class FollowerConfig:
         """Database configuration."""
         db_config = self._config.get("database", {})
         return DatabaseConfig(
-            phase2_path=db_config.get("phase2_path", "../data/analyzed_traders.db"),
-            follower_path=db_config.get("follower_path", "../data/follower_signals.db")
+            phase2_path=db_config.get("phase2_path", "../../data/analyzed_traders.db"),
+            follower_path=db_config.get("follower_path", "../../data/follower_signals.db")
         )
 
     @property
