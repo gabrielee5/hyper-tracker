@@ -1,197 +1,58 @@
-# Market Maker Position Monitor
+# market_makers
 
-Real-time monitoring and analysis of market maker positions and directional bias on Hyperliquid.
+Tracks the net directional exposure of accounts that look like market makers.
 
-## Overview
+## What it does
 
-This module tracks positions of identified market makers from the analyzer database, calculates their collective directional bias per asset, and provides real-time insights through a web dashboard.
+The analyzer skips traders that are too large or too active to score
+meaningfully and records them in the `market_makers` table of
+`data/analyzed_traders.db` instead. This module reads that table, filters to
+accounts above `min_mm_balance` (default $50k), fetches their open positions
+every `fetch_interval_seconds` (default 900), and computes their collective net
+delta per asset.
 
-## Features
+The delta is classified against two thresholds: below
+`neutral_threshold_percent` (10%) reads as NEUTRAL, above
+`strong_bias_threshold_percent` (30%) as strongly directional, with BULLISH /
+BEARISH in between. `weight_by_account_size` is off by default, so every
+qualifying account counts equally.
 
-- **Market Maker Tracking**: Monitors positions of detected market makers
-- **Bias Calculation**: Calculates net long/short bias per asset
-- **Directional Analysis**: Identifies BULLISH, BEARISH, or NEUTRAL sentiment
-- **Real-time Dashboard**: Web interface with auto-refresh
-- **Historical Data**: Stores position snapshots and bias history
-- **Price Integration**: Fetches current market prices for context
+Snapshots are retained 7 days, bias history 30.
 
-## Installation
-
-```bash
-cd market-makers
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-pip install -r requirements.txt
-```
-
-## Configuration
-
-Edit `config.json` to customize settings:
-
-- **analyzer_db_path**: Path to analyzer database (must exist)
-- **monitoring.fetch_interval_seconds**: How often to fetch new data (default: 60s)
-- **monitoring.min_mm_balance**: Minimum account balance to track (default: $50k)
-- **bias_analysis.neutral_threshold_percent**: Threshold for neutral bias (default: 10%)
-- **dashboard.port**: Web dashboard port (default: 5003)
-
-## Usage
-
-### Start the Monitor
+## Run
 
 ```bash
+cd pipeline/market_makers
 python main.py
 ```
 
-The monitor will:
-1. Read market makers from the analyzer database
-2. Fetch their current positions every 60 seconds
-3. Calculate bias metrics
-4. Store data in local database
-5. Update the web dashboard
+**Must be started from its own directory** — unlike contrarian and follower,
+this module does not chdir on startup, so its `../../data/...` config paths
+resolve against whatever directory you launch it from.
 
-### Access the Dashboard
+Dependencies come from the repo-root `requirements.txt`; there is no
+module-level one.
 
-Open your browser to: `http://localhost:5003`
+Dashboard on `http://localhost:5003`.
 
-The dashboard displays:
-- Total market makers being tracked
-- Total position value across all MMs
-- Number of assets with MM activity
-- Per-asset bias breakdown with visual indicators
-- Auto-refreshes every 30 seconds
+## Caveats
 
-## How It Works
+**The roster goes stale.** Market makers move funds between wallets, so an
+address that was a market maker last month may be empty now. Keeping the roster
+current means running `../fetcher/` alongside this to keep discovering new
+addresses, and re-running `../analyzer/` to classify them.
 
-### Bias Calculation
+**"Market maker" here is a heuristic, not an identification.** It means high
+volume and high balance relative to the rest of the address pool. It does not
+distinguish a genuine liquidity provider from a large directional trader.
 
-For each asset, the monitor:
+**Nothing consumes `data/mm_positions.db`.** This module is a viewer; its output
+does not feed the signal modules.
 
-1. **Aggregates Positions**: Sums all MM long and short positions
-2. **Calculates Net Bias**: `(Long USD - Short USD) / Total USD × 100`
-3. **Determines Direction**:
-   - **BULLISH**: Bias > +10%
-   - **BEARISH**: Bias < -10%
-   - **NEUTRAL**: -10% to +10%
-4. **Assesses Strength**:
-   - **STRONG**: |Bias| > 30%
-   - **MODERATE**: 10% < |Bias| < 30%
-   - **WEAK**: |Bias| < 10%
+## Relation to the other modules
 
-### Example
-
-If for BTC:
-- 15 MMs have LONG positions worth $2.5M
-- 8 MMs have SHORT positions worth $1.5M
-
-Then:
-- Total Value: $4M
-- Net Bias: +$1M
-- Bias Percentage: +25%
-- Direction: **BULLISH MODERATE**
-
-## Data Storage
-
-### Local Database: `data/mm_positions.db`
-
-Three tables:
-
-1. **position_snapshots**: Historical position data (7-day retention)
-2. **bias_history**: Calculated bias metrics (30-day retention)
-3. **mm_activity**: Market maker activity tracking
-
-### Retention Policy
-
-- Position snapshots: 7 days (configurable)
-- Bias history: 30 days (configurable)
-- Automatic cleanup on each monitoring cycle
-
-## Dependencies
-
-Requires the **analyzer** module to be running and detecting market makers. The analyzer populates the `market_makers` table which this module reads from.
-
-## Architecture
-
-```
-market-makers/
-├── main.py                      # Orchestrator
-├── config.json                  # Configuration
-├── core/
-│   ├── config.py               # Config management
-│   ├── database.py             # Database operations
-│   ├── position_fetcher.py     # Hyperliquid API client
-│   ├── bias_analyzer.py        # Bias calculations
-│   ├── price_fetcher.py        # Price data
-│   └── web_dashboard.py        # Flask server
-├── dashboard/
-│   └── templates/
-│       └── dashboard.html      # Web UI
-└── data/
-    └── mm_positions.db         # Local database
-```
-
-## Logging
-
-Logs are written to: `../logs/mm_monitor.log`
-
-Log levels:
-- **INFO**: Normal operation, cycle summaries
-- **WARNING**: No data found, API issues
-- **ERROR**: Failures, exceptions
-
-## Troubleshooting
-
-### "No active market makers found"
-
-**Cause**: Analyzer database has no market makers detected, or they're all older than 24 hours.
-
-**Solution**:
-- Ensure analyzer module is running
-- Check `analyzer/data/analyzed_traders.db` has entries in `market_makers` table
-- Verify market makers have `last_seen` within 24 hours
-
-### "Analyzer DB not found"
-
-**Cause**: Path to analyzer database is incorrect.
-
-**Solution**: Update `analyzer_db_path` in `config.json` to point to the actual analyzer database file.
-
-### Dashboard shows no data
-
-**Cause**: No positions found for tracked market makers.
-
-**Solution**:
-- Wait for next update cycle (60 seconds)
-- Check logs for API errors
-- Verify market makers are actually trading (have open positions)
-
-### Slow updates
-
-**Cause**: Too many concurrent API requests.
-
-**Solution**: Reduce `concurrency_limit` in config from 10 to 5.
-
-## API Rate Limits
-
-Hyperliquid API allows ~15 calls/second. With default settings:
-- 10 concurrent requests
-- ~10 seconds to fetch 100 market makers
-- Well within 60-second update interval
-
-## Performance
-
-- **Database size**: ~1MB per day of operation
-- **Memory usage**: ~50-100MB
-- **CPU usage**: Minimal (async I/O bound)
-- **Network**: ~100 API calls per minute (depends on MM count)
-
-## Future Enhancements
-
-- Export bias data to CSV
-- Telegram notifications for extreme bias shifts
-- Historical bias charts
-- MM-specific detail modal
-- Bias reversal alerts
-
-## License
-
-Part of the hyper-tracker project.
+Structurally this is a fork of [`../contrarian/`](../contrarian/), not of
+`../analyzer/` — `core/position_fetcher.py` and `core/price_fetcher.py` are
+byte-identical to contrarian's, and it uses the same JSON-plus-dataclasses
+config style. The genuinely new code is `core/bias_analyzer.py` and the
+`position_snapshots` / `bias_history` / `mm_activity` schema.

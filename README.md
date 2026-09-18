@@ -1,518 +1,253 @@
-# Hyperliquid Trader Intelligence System
+# hyper-tracker
 
-A comprehensive 4-phase system for identifying and profiting from consistently poor traders on Hyperliquid DEX through statistical analysis and contrarian trading strategies.
+Tracking Hyperliquid traders to find out whether you can make money by copying
+the good ones or taking the other side of the bad ones.
 
-## System Overview
+**The answer, on this data, is no — in either direction.** Three independent
+tests say so. That negative result is the most useful thing in this repo, so it
+is written up first, below. The code that produced it is here and re-runnable.
 
-```
-Phase 1: FETCHER          Phase 2: ANALYZER         Phase 3: CONTRARIAN       Phase 4: SIMULATOR
-┌──────────────┐         ┌──────────────┐         ┌──────────────┐         ┌──────────────┐
-│ Live Trades  │────────▶│  Statistical │────────▶│   Position   │────────▶│ Paper Trading│
-│   Monitor    │         │   Analysis   │         │  Monitoring  │         │   Execution  │
-└──────────────┘         └──────────────┘         └──────────────┘         └──────────────┘
-  WebSocket API           Bad Trader ID            Signal Generation         Portfolio Mgmt
-  Address Tracking        Performance Scoring      Contrarian Logic          Live Rebalancing
-  SQLite Storage          Monte Carlo Tests        Confidence Weighting      P&L Tracking
-  Dashboard:5000          Dashboard:5001           Console Dashboard         Dashboard:5002
-```
+## The thesis
 
-## Component Details
+Perp DEXes are full of traders who lose money. If some of them lose
+*reliably* — not just on average, but persistently enough that last month
+predicts next month — then their positions are a signal. Fade the ones who are
+reliably wrong, follow the ones who are reliably right.
 
-### Phase 1: Fetcher (`fetcher/`)
-**Real-time trade monitoring and address collection**
+The pipeline built to test this collects addresses from the live trade feed
+(`pipeline/fetcher`), pulls each trader's fill history and scores them
+(`pipeline/analyzer`), then watches what the worst-scoring cohort is holding and
+emits the opposite signal (`pipeline/contrarian`), with a mirror module that
+follows the best-scoring cohort instead (`pipeline/follower`).
 
-**Core Functions:**
-- WebSocket connection to Hyperliquid for live trade data
-- Extracts buyer/seller addresses from all trades
-- Tracks trading volume and frequency per address
-- Stores in SQLite with deduplication and batch processing
+It ran for about nine months. The dataset is 114,487 addresses, 6,911 scored
+traders, and 189,024 signal snapshots from 2025-12-16 to 2026-09-18.
 
-**Key Features:**
-- Configurable coin selection (specific coins or all pairs)
-- Batch processing (configurable batch size, default 1000)
-- Automatic reconnection handling
-- Web dashboard with real-time statistics
+## What it found
 
-**Configuration:** `.env` file
-- `TRACK_ALL_COINS`: Monitor all coins or selected pairs
-- `SELECTED_COINS`: Comma-separated coin list
-- `BATCH_SIZE`: Addresses before flush
-- `DASHBOARD_PORT`: Default 5000
+### 1. The original score was measuring the wrong thing
 
-**Database:** `fetcher/data/addresses.db`
-- `addresses` table: Unique addresses with trade counts and volumes
-- `trades` table: Complete trade history for analysis
+`pipeline/analyzer` claimed to identify traders performing "significantly worse
+than random". It does not. It is a profit/loss sign classifier:
 
-**Usage:**
+| group | total_pnl < 0 | total_pnl >= 0 |
+|---|---|---|
+| `score <= 5` | **1723** | **0** |
+| `score >= 95` | **0** | **1284** |
+
+Perfect separation in both directions, across 6,911 traders. Three reasons it
+collapsed to that:
+
+- **The Monte Carlo adds nothing.** It draws `N(0, the trader's own sigma)`, so
+  the trader's percentile within those draws is a monotone function of
+  `mean/(sigma/sqrt(n))` — the t-statistic computed three lines earlier. One
+  test, reported twice.
+- **The null is wrong.** `E[closedPnl] = 0` is not "random". A random trader on
+  a perp DEX has *negative* expected PnL from fees and funding, so "worse than
+  random" as implemented means "lost money", which is most participants.
+- **The test is saturated.** Mean trade count is 1,373, and at that n a t-test
+  rejects on any trivial nonzero mean.
+
+Details in [`pipeline/analyzer/README.md`](pipeline/analyzer/README.md). The
+module is kept, running and unchanged, as the baseline a replacement had to beat.
+
+### 2. The replacement, scoring execution timing instead, also failed
+
+`research/execution_analyzer` scores traders on *when* they trade rather than
+how much they made: cluster fills into decisions, discard liquidations, maker
+fills, spot legs and TWAP slices, measure the drift-demeaned and
+volatility-normalized forward return at 12h and 1d, and test against a null that
+time-shifts prices while holding signs and timestamps fixed.
+
+Run on 2,548 traders and 4.24M fills, it failed its own pre-registered gate on
+the two counts that matter most:
+
+- **No specificity.** The traders the old score calls *good* — the ones making
+  money — time **worse** than the bad ones (−0.15 vs −0.02 trader-mean). Ranking
+  by this metric to build a fade roster would preferentially pick the profitable
+  traders.
+- **No persistence.** Timing quality in one half of a trader's history does not
+  predict the other half (rho = −0.076, p = 0.23), and the decile ordering
+  inverts: the worst decile in period A comes back *least* negative in period B.
+
+Full method, the kill criteria as they were fixed before the data was seen, and
+the results, in
+[`research/execution_analyzer/README.md`](research/execution_analyzer/README.md).
+
+### 3. The assumption underneath everything does not hold either
+
+Every module here assumes trader performance is persistent. That had never been
+checked. `research/execution_analyzer/persistence.py` checks it: split each
+trader's history at its own midpoint, score both halves on return on *turnover*
+rather than dollars, and see whether the first half ranks the second. 1,630
+traders.
+
+**Performance does persist — but not in anything you can trade.**
+
+| metric | Spearman rho(A, B) | p |
+|---|---|---|
+| net return on turnover | +0.066 | 0.0075 |
+| risk-adjusted (per-trade t) | +0.132 | 8.6e-08 |
+| **win rate** | **+0.421** | **3.5e-71** |
+
+The null of "no persistence" is rejected. Then it falls apart three ways:
+
+- **There are no winners to follow.** Ranked on the first half, *every* decile
+  has a negative median return in the second half — including the best, at
+  −13.34 bp. Only 25% of traders are net-positive at all.
+- **The most persistent trait is inverted.** Win rate is by far the strongest
+  signal, and high win-rate traders lose *more* (median −30.26 bp vs −19.54 bp).
+  Small profits taken, losses left to run. The thing you can measure most
+  reliably is the thing you least want to select on.
+- **What persists is the cost structure, not an edge.** Median gross −11.64 bp,
+  fee drag +8.31 bp, net −21.26 bp. The top decile is roughly break-even gross
+  and loses mainly to fees — Barber & Odean reproduced on Hyperliquid perps.
+
+And direction, the only part a contrarian trade could actually capture, does not
+persist at all: rho(first-half net ROI, second-half timing) = −0.022, p = 0.57.
+
+### What that adds up to
+
+**Trader selection does not work on this dataset, in either direction.** Losing
+traders lose to costs, turnover and risk management rather than to being reliably
+wrong about market direction, and there is no counterparty trade that captures a
+fee drag. To collect what these traders lose you would have to be their exchange,
+not the other side of their trade.
+
+Two further things worth knowing before building on any of this:
+
+- **The contrarian signal was close to a constant.** Over 3,732 signals per coin,
+  BTC was SHORT 96.6% of the time (ETH 80.6%, SOL 85.3%) while BTC fell 12.7%.
+  The cohort sits at ~60% long and never drops below 37%, so the raw positioning
+  *level* can essentially never produce a LONG signal. Whatever edge that period
+  showed is arithmetically hard to separate from `-1 x drift`. If the module is
+  kept, signal on the **deviation from a trailing baseline** instead.
+- **An independent check agrees.** Fading the cohort's net delta earns no
+  significant alpha on any coin: BTC +3.3 bp/day (t = +0.68), ETH −5.5
+  (t = −0.77), SOL −17.4 (t = −1.47), Newey-West, net of cost, over 154 days.
+  Reproduce with `research/execution_analyzer/cohort_alpha_check.py`.
+
+The thesis is not dead because the code was wrong. The code was rebuilt properly
+and the thesis still failed the test.
+
+## Install
+
+Python 3.12. Everything talks to Hyperliquid's public read-only REST and
+WebSocket endpoints — there are no API keys and no exchange credentials
+anywhere in this project.
+
 ```bash
-cd fetcher
-python main.py
-```
-
----
-
-### Phase 2: Analyzer (`analyzer/`)
-**Statistical analysis to identify consistently poor performers**
-
-**Core Functions:**
-- Read-only access to Phase 1 database
-- Fetches complete trading history per address via Hyperliquid API
-- Performs rigorous statistical testing (t-tests, Monte Carlo simulations)
-- Scores traders 0-100 based on performance vs random chance
-- Alerts on exceptionally bad traders (score ≤ 5, p < 0.01)
-
-**Statistical Methods:**
-- **One-sample t-test**: Tests if mean PnL significantly differs from zero
-- **Monte Carlo simulation**: 1000 iterations comparing against random performance
-- **Sharpe ratio**: Risk-adjusted returns
-- **Expected value**: Long-term profit/loss expectation per trade
-
-**Scoring System:**
-- 0-5: Exceptionally bad (significantly worse than random) → ALERT
-- 5-15: Very poor (likely worse than random)
-- 15-40: Below average but not significant
-- 40-60: Random performance
-- 60-85: Above average
-- 85-95: Very good
-- 95-100: Exceptional
-
-**Key Features:**
-- Minimum 30 trades required for analysis
-- Concurrent analysis of 10 traders (configurable)
-- Re-analysis every 7 days for existing traders
-- Separate database for isolation from Phase 1
-- JSON alert logging for integration
-
-**Configuration:** `analyzer/config/config.yaml`
-- `min_trades`: Statistical significance threshold (default 30)
-- `p_value_threshold`: Confidence level (default 0.01)
-- `alert_score_threshold`: Alert trigger (default 5)
-- `monte_carlo_iterations`: Simulation count (default 1000)
-
-**Database:** `analyzer/data/analyzed_traders.db`
-- `scored_traders` table: Performance metrics and statistical analysis
-- `analysis_log` table: Tracking of all analysis attempts
-
-**Usage:**
-```bash
-cd analyzer
-python main.py --mode continuous  # Continuous monitoring
-python main.py --mode once --limit 50  # One-time batch
-
-# Export database to CSV
-python export_to_csv.py  # Export all tables to ./exports
-python export_to_csv.py --table scored_traders  # Export specific table
-python export_to_csv.py --output-dir ./my_exports  # Custom output directory
-```
-
----
-
-### Phase 3: Contrarian (`contrarian/`)
-**Real-time position monitoring and signal generation**
-
-**Core Functions:**
-- Identifies traders with score ≤ 5 from Phase 2
-- Fetches current open positions from Hyperliquid API
-- Aggregates positioning by trading pair
-- Generates contrarian signals (opposite of bad trader positions)
-- Calculates confidence scores based on consensus and sample size
-
-**Signal Logic:**
-- **STRONG SHORT**: 70%+ of bad traders are LONG
-- **MODERATE SHORT**: 60-70% are LONG
-- **STRONG LONG**: 70%+ are SHORT
-- **MODERATE LONG**: 60-70% are SHORT
-- **NEUTRAL**: 40-60% either way
-
-**Confidence Calculation:**
-```
-Imbalance = abs(long_pct - 50%) / 50%
-Sample factor = min(1.0, traders / (min_traders * 3))
-Confidence = (imbalance * 0.7) + (sample_factor * 0.3)
-```
-
-**Key Features:**
-- Dual metrics: count-based and size-weighted (USD value)
-- Minimum 10 traders required for signal generation
-- Rich console dashboard with live updates (90-second refresh)
-- Historical signal storage for validation
-- API rate limiting and concurrent request management
-
-**Configuration:** `contrarian/config.json`
-- `bad_trader_score_threshold`: Max score to consider (default 5)
-- `min_traders_for_signal`: Minimum sample size (default 10)
-- `signal_thresholds.strong`: Strong signal threshold (default 0.70)
-- `update_interval_seconds`: Refresh rate (default 90)
-
-**Database:** `contrarian/data/contrarian_signals.db`
-- `contrarian_signals` table: All generated signals with metrics
-- `position_snapshot` table: Individual trader positions
-
-**Usage:**
-```bash
-python contrarian/main.py
-```
-
----
-
-### Phase 4: Simulator (`simulator/`)
-**Paper trading simulator with automated execution**
-
-**Core Functions:**
-- Reads signals from Phase 3 database
-- Manages virtual $100k portfolio
-- Executes confidence-weighted position sizing
-- Automatically rebalances every 15 minutes
-- Tracks performance with comprehensive metrics
-
-**Position Sizing:**
-- Confidence-weighted allocation across top 10 signals
-- Maximum 40% per position
-- Minimum $1,000 trade size
-- 100% capital deployment (no cash reserve)
-
-**Realistic Execution:**
-- Maker fee: 0.02%
-- Taker fee: 0.05%
-- Size-based slippage model
-- Live price fetching every 5 seconds
-
-**Performance Metrics:**
-- Sharpe ratio (30-day rolling, annualized)
-- Maximum drawdown
-- Win rate and average win/loss
-- Total P&L and returns
-- Position-level unrealized P&L
-
-**Key Features:**
-- Real-time mark-to-market valuations
-- Complete trade history with fees and slippage
-- Web dashboard with equity curve and position breakdowns
-- Automatic state saving and recovery
-- Graceful shutdown handling
-
-**Configuration:** `simulator/config.json`
-- `portfolio.starting_capital`: Initial capital (default 100000)
-- `strategy.rebalance_interval_seconds`: Rebalance frequency (default 900)
-- `strategy.min_confidence_threshold`: Minimum signal confidence (default 0.60)
-- `execution.taker_fee`: Trading fees (default 0.0005)
-
-**Database:** `simulator/data/simulator.db`
-- `positions` table: Current open positions
-- `trades` table: Complete execution history
-- `portfolio_state` table: Equity snapshots
-- `performance_history` table: Time-series metrics
-- `rebalance_history` table: Rebalancing events
-
-**Usage:**
-```bash
-python simulator/main.py
-```
-
-**Dashboard:** http://localhost:5002
-- Portfolio summary and P&L
-- Performance metrics
-- Equity curve chart
-- Open positions table
-- Position allocation pie chart
-- Trade history
-
----
-
-## Installation
-
-### Prerequisites
-- Python 3.8+
-- pip package manager
-- Internet connection for Hyperliquid API
-
-### Setup
-```bash
-# Clone repository
-cd hyper-tracker
-
-# Create virtual environment
-python -m venv venv
-source venv/bin/activate  # Windows: venv\Scripts\activate
-
-# Install dependencies (all phases)
+git clone <this repo> && cd hyper-tracker
+python3 -m venv venv && source venv/bin/activate
 pip install -r requirements.txt
-
-# Configure Phase 1
-cp .env.example .env
-# Edit .env with your settings
-
-# Configure Phase 2
-# Edit analyzer/config/config.yaml if needed
-
-# Configure Phase 3
-# Edit contrarian/config.json if needed
-
-# Configure Phase 4
-# Edit simulator/config.json if needed
+cp .env.example .env          # defaults are fine to start
 ```
 
-### Running the System
+There is exactly one `requirements.txt`, at the repo root. It covers every
+module.
 
-**Sequential startup (recommended for first time):**
+## Run
+
+Each module runs from its own directory and expects the one before it to have
+produced data. Nothing here is fast: the fetcher needs hours to accumulate a
+useful address pool, and the analyzer processes roughly 100–200 traders/hour
+under Hyperliquid's rate limits.
+
 ```bash
-# Terminal 1: Start Phase 1 (Fetcher)
-cd fetcher && python main.py
-
-# Wait 5-10 minutes for address collection
-
-# Terminal 2: Start Phase 2 (Analyzer)
-cd analyzer && python main.py --mode continuous
-
-# Wait for bad trader identification
-
-# Terminal 3: Start Phase 3 (Contrarian)
-python contrarian/main.py
-
-# Terminal 4: Start Phase 4 (Simulator)
-python simulator/main.py
+cd pipeline/fetcher    && python main.py                    # live trades -> addresses.db
+cd pipeline/analyzer   && python main.py --mode continuous  # score traders -> analyzed_traders.db
+cd pipeline/contrarian && python main.py                    # fade the worst -> contrarian_signals.db
 ```
 
-**Access Dashboards:**
-- Phase 1: http://localhost:5000
-- Phase 2: http://localhost:5001
-- Phase 4: http://localhost:5002
-- Phase 3: Terminal-based Rich dashboard
+Optional, all reading `analyzed_traders.db` and all independent of each other:
 
----
-
-## System Architecture
-
-### Data Flow
-```
-1. Fetcher collects addresses from live trades
-   └─▶ addresses.db
-
-2. Analyzer reads addresses, fetches trade history
-   ├─▶ Performs statistical analysis
-   └─▶ analyzed_traders.db (bad traders)
-
-3. Contrarian reads bad traders, fetches positions
-   ├─▶ Generates inverse signals
-   └─▶ contrarian_signals.db
-
-4. Simulator reads signals
-   ├─▶ Executes paper trades
-   └─▶ simulator.db (portfolio tracking)
+```bash
+cd pipeline/follower      && python main.py   # mirror of contrarian, follows the best
+cd pipeline/market_makers && python main.py   # tracks the presumed market makers' net delta
+cd pipeline/observer      && python3 main.py  # web UI to review traders by hand
 ```
 
-### Isolation & Safety
-- Each phase uses separate databases
-- Phase 2+ only READ from prior phases
-- No write conflicts between components
-- Fault isolation: crashes don't cascade
-- Each phase can run independently
+The research side runs offline against cached data:
 
-### API Usage
-All phases use Hyperliquid's public API:
-- **Fetcher**: WebSocket trade subscriptions
-- **Analyzer**: HTTP `userFills` endpoint
-- **Contrarian**: HTTP `clearinghouseState` endpoint
-- **Simulator**: HTTP `allMids` endpoint for prices
-
-**Rate Limiting:**
-- Analyzer: 20 req/sec, 10 concurrent
-- Contrarian: 15 req/sec, 10 concurrent
-- Simulator: 10 req/sec, 5 concurrent
-
----
-
-## Performance Characteristics
-
-### Resource Usage (per phase)
-| Phase | CPU | Memory | Network | Disk Growth |
-|-------|-----|--------|---------|-------------|
-| Fetcher | <5% | ~50MB | 1-2KB/s per coin | ~1MB/10k addresses |
-| Analyzer | 5-10% | ~150MB | 10-50KB/s | ~1MB/10k traders |
-| Contrarian | <5% | ~50MB | Burst: 280 calls/90s | ~100KB/day |
-| Simulator | <5% | ~150MB | 1-2KB/s | ~500KB/day |
-
-### Throughput
-- **Fetcher**: Real-time (all trades captured)
-- **Analyzer**: ~100-200 traders/hour
-- **Contrarian**: ~280 traders/90 seconds
-- **Simulator**: Updates every 5s, rebalances every 15min
-
----
-
-## Troubleshooting
-
-### Phase 1 Issues
-- **No trades appearing**: Verify coin selection, check WebSocket connection
-- **Database errors**: Check write permissions in `data/` directory
-- **Dashboard not loading**: Verify port 5000 is available
-
-### Phase 2 Issues
-- **Phase 1 database not found**: Ensure Fetcher has run and created addresses.db
-- **API rate limit exceeded**: Reduce `concurrent_traders` in config
-- **No addresses to analyze**: Wait for Fetcher to collect addresses
-
-### Phase 3 Issues
-- **No signals generated**: Normal if bad traders lack positions; lower `min_traders_for_signal`
-- **No bad traders found**: Run Analyzer first to populate scored_traders table
-- **API rate limit errors**: Reduce `api.concurrency_limit`
-
-### Phase 4 Issues
-- **No signals available**: Ensure Phase 3 is running and generating signals
-- **Database not found**: Update `signals_db` path in config.json
-- **Port already in use**: Change `dashboard.port` in config
-
----
-
-## Project Structure
-
-```
-hyper-tracker/
-├── fetcher/              # Phase 1: Real-time trade monitoring
-│   ├── main.py
-│   ├── config.py
-│   ├── connection.py
-│   ├── address_tracker.py
-│   ├── storage.py
-│   ├── dashboard.py
-│   ├── data/
-│   │   └── addresses.db
-│   └── logs/
-│
-├── analyzer/             # Phase 2: Statistical analysis
-│   ├── main.py
-│   ├── export_to_csv.py  # Database export utility
-│   ├── config/
-│   │   └── config.yaml
-│   ├── core/
-│   │   ├── api_client.py
-│   │   ├── statistics.py
-│   │   ├── database.py
-│   │   └── config.py
-│   ├── services/
-│   │   ├── analyzer_service.py
-│   │   └── alert_service.py
-│   ├── dashboard/
-│   │   └── app.py
-│   ├── data/
-│   │   └── analyzed_traders.db
-│   ├── exports/          # CSV export output
-│   └── logs/
-│
-├── contrarian/           # Phase 3: Signal generation
-│   ├── main.py
-│   ├── config.json
-│   ├── core/
-│   │   ├── config.py
-│   │   ├── database.py
-│   │   ├── position_fetcher.py
-│   │   ├── aggregator.py
-│   │   ├── signal_generator.py
-│   │   └── dashboard.py
-│   ├── data/
-│   │   └── contrarian_signals.db
-│   └── logs/
-│
-├── simulator/            # Phase 4: Paper trading
-│   ├── main.py
-│   ├── config.json
-│   ├── simulator.py
-│   ├── signal_reader.py
-│   ├── position_sizer.py
-│   ├── price_fetcher.py
-│   ├── order_executor.py
-│   ├── portfolio_manager.py
-│   ├── performance_tracker.py
-│   ├── dashboard.py
-│   ├── templates/
-│   │   └── index.html
-│   ├── data/
-│   │   └── simulator.db
-│   └── logs/
-│
-├── requirements.txt      # All dependencies
-├── .env.example         # Phase 1 config template
-└── README.md            # This file
+```bash
+python research/execution_analyzer/fetch_data.py       # ~50 min, resumable, populates the cache
+python research/execution_analyzer/validate.py         # the pre-registered gate
+python research/execution_analyzer/persistence.py      # the split-half test (cache only, no network)
+python research/execution_analyzer/cohort_alpha_check.py
+python -m pytest tests/ -q                             # 24 tests, synthetic data, no network
 ```
 
----
+`persistence.py` and `validate.py` need the fill cache, which is 242MB for 2,548
+traders and is not committed. `fetch_data.py` rebuilds it.
 
-## Design Philosophy
+## Layout
 
-### Why This Architecture?
+```
+pipeline/     live collection and signal generation
+  fetcher/          WebSocket trade feed -> unique addresses
+  analyzer/         per-trader statistics -> a 0-100 score (see finding 1)
+  contrarian/       fades the low-scoring cohort
+  follower/         follows the high-scoring cohort
+  market_makers/    net delta of high-balance, high-volume accounts
+  observer/         manual review UI (nothing downstream consumes its output)
 
-**Modular Independence:**
-- Each phase solves one problem well
-- Failures don't cascade
-- Easy to test and debug individually
-- Can run phases on different machines
+research/     the offline analysis that produced the answers above
+  execution_analyzer/   the timing scorer, the gate, the persistence test
+  notebooks/            strategy backtest on exported signals
+  simulator/            paper-trading sim; superseded, and its Sharpe is wrong
 
-**Progressive Analysis:**
-- Raw data → Statistical analysis → Signal generation → Execution
-- Each phase adds value to prior layer
-- Clear separation of concerns
+services/     macOS launchd units for running the pipeline unattended
+tests/        pytest suite for the execution scorer
+docs/         architecture, configuration, and the design system for the dashboards
+data/         every database (gitignored — nothing ships with data)
+logs/         every log file (gitignored)
+exports/      CSV output (gitignored)
+```
 
-**Database Isolation:**
-- No write conflicts
-- Read-only dependencies
-- Easy to backup/restore individual phases
-- Scalable data architecture
+### Dashboards
 
-**Statistical Rigor:**
-- Not just tracking bad traders, but proving significance
-- Monte Carlo validation against randomness
-- 99% confidence threshold for alerts
-- Multiple statistical tests for robustness
+Every module serves one. They are independent; run as many as you like.
 
----
+| port | module |
+|---|---|
+| 5000 | `pipeline/fetcher` |
+| 5001 | `pipeline/analyzer` |
+| 5002 | `pipeline/contrarian` |
+| 5003 | `pipeline/market_makers` |
+| 5004 | `research/simulator` (three-asset variant) |
+| 5005 | `pipeline/follower` |
+| 5006 | `pipeline/observer` |
+| 5007 | `research/simulator` |
 
-## Future Enhancements
+`pipeline/contrarian` also renders a Rich console dashboard in the terminal it
+runs in.
 
-### Phase 1 (Fetcher)
-- Multi-exchange support
-- Historical data backfill
-- Advanced filtering (volume, trade size)
+## Docs
 
-### Phase 2 (Analyzer)
-- Machine learning for pattern detection
-- Time-series analysis of trader behavior
-- Correlation analysis between traders
+- [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — how the modules fit together, and the database schemas
+- [`docs/CONFIGURATION.md`](docs/CONFIGURATION.md) — every config file and what each setting does
+- [`docs/CONFIDENCE_SCORE.md`](docs/CONFIDENCE_SCORE.md) — how the signal confidence is derived
+- [`docs/TRACK_ROLE_GUIDE.md`](docs/TRACK_ROLE_GUIDE.md) — why maker/taker filtering matters, and why the fetcher cannot do it
+- [`docs/DATA_ACCESS.md`](docs/DATA_ACCESS.md) — querying and exporting the databases
+- [`docs/OPEN_QUESTIONS.md`](docs/OPEN_QUESTIONS.md) — what is still unanswered, and what is not worth trying
+- [`docs/archive/`](docs/archive/) — historical artifacts, kept for reference, not current
 
-### Phase 3 (Contrarian)
-- Signal validation and backtesting
-- WebSocket API for real-time signal delivery
-- Discord/Telegram alert integration
-- Web dashboard (HTML/JS)
+## A note on reading this code
 
-### Phase 4 (Simulator)
-- Multiple strategy support
-- Risk management features (stop loss, max drawdown limits)
-- Live trading integration (currently paper-only)
-- Backtesting with historical data
+This was a personal research project, and it shows in places. `pipeline/follower`
+is 95% a copy of `pipeline/contrarian` with one comparison operator flipped.
+`research/simulator` has a Sharpe ratio that is simply wrong. Those are labelled
+where they occur rather than quietly fixed, because the point of publishing this
+is the result and the method, not the craftsmanship.
 
----
-
-## Disclaimer
-
-This system is for educational and research purposes only. Paper trading results do not guarantee future performance. Cryptocurrency trading carries significant risk. Always conduct your own research and consult with financial professionals before trading with real capital.
-
-The system identifies poor performers statistically but past performance does not predict future results. Use at your own risk.
-
----
+The part worth reading closely is `research/execution_analyzer`: the kill
+criteria were written down before the data was seen, and the module reports its
+own failure against them.
 
 ## License
 
-MIT License - See individual component READMEs for details.
+MIT — see [LICENSE](LICENSE).
 
-## Support
-
-For issues or questions:
-1. Check component-specific logs
-2. Review individual README files for each phase
-3. Verify configuration files are correct
-4. Ensure all prerequisites are met
-5. Test API connectivity to Hyperliquid
-
----
-
-**Built for Hyperliquid DEX | 4-Phase Statistical Trading System**
+Research and educational use. Nothing here is financial advice, and the one
+conclusion it reaches with any confidence is that the strategy it set out to
+build does not work.

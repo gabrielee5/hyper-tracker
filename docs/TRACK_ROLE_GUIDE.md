@@ -1,5 +1,19 @@
 # Track Role Configuration Guide
 
+> **`TRACK_ROLE` is deprecated and has no effect.** The fetcher always records
+> both addresses on every trade. Hyperliquid's public `trades` WebSocket
+> subscription does not carry the `crossed` field that distinguishes the taker
+> from the maker, so the role cannot be determined from the feed at all. The
+> setting is still validated on startup — an invalid value raises — but it is
+> then ignored (`pipeline/fetcher/address_tracker.py:28`,
+> `pipeline/fetcher/config.py:69`).
+>
+> The rest of this document describes the intended behaviour and is kept because
+> the distinction still matters: maker fills really are adversely selected and a
+> resting order's fill time really is not its decision time. Anything downstream
+> that needs taker-only data has to filter it later, from `userFills`, which does
+> carry `crossed`. `research/execution_analyzer/scoring.py` does exactly that.
+
 ## Overview
 
 The tracker now supports filtering addresses based on their role in trades (maker vs. taker). This allows you to focus on specific types of traders based on your analysis needs.
@@ -93,13 +107,13 @@ TRACK_ROLE=both
 ### Files Modified
 
 1. **`.env.example`**: Added `TRACK_ROLE` configuration option
-2. **`fetcher/config.py`**: Added `track_role` field with validation
-3. **`fetcher/address_tracker.py`**: Updated `process_trade_event()` to filter addresses based on role
-4. **`fetcher/main.py`**: Pass `track_role` from config to tracker
+2. **`pipeline/fetcher/config.py`**: Added `track_role` field with validation
+3. **`pipeline/fetcher/address_tracker.py`**: Updated `process_trade_event()` to filter addresses based on role
+4. **`pipeline/fetcher/main.py`**: Pass `track_role` from config to tracker
 
 ### Key Code Changes
 
-The address filtering logic in `fetcher/address_tracker.py:70-90`:
+The address filtering logic in `pipeline/fetcher/address_tracker.py:70-90`:
 
 ```python
 if self.track_role == "both":

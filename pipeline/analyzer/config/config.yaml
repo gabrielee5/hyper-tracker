@@ -31,7 +31,7 @@ processing:
 dashboard:
   enabled: true
   host: "0.0.0.0"
-  port: 5001  # Different from Phase 1 (5000)
+  port: 5001
   auto_refresh_seconds: 10
   timezone: "Europe/Rome"
 
