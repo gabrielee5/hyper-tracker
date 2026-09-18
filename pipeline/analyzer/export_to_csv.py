@@ -107,8 +107,8 @@ Examples:
     parser.add_argument(
         '--db-path',
         type=str,
-        default='../data/analyzed_traders.db',
-        help='Path to analyzed_traders.db (default: ../data/analyzed_traders.db)'
+        default='../../data/analyzed_traders.db',
+        help='Path to analyzed_traders.db (default: ../../data/analyzed_traders.db)'
     )
 
     parser.add_argument(
@@ -154,7 +154,7 @@ Examples:
         sys.exit(0)
 
     # Determine main project directory and exports folder
-    main_dir = script_dir.parent
+    main_dir = script_dir.resolve().parents[2]  # repo root
 
     # Create output directory
     if args.output_dir:

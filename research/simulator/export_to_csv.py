@@ -31,7 +31,7 @@ class SimulatorExporter:
         """
         self.db_path = db_path
         self.conn = None
-        self.export_dir = Path(__file__).parent.parent / 'exports' / 'simulator'
+        self.export_dir = Path(__file__).resolve().parents[2] / 'exports' / 'simulator'
 
         # Create exports/simulator directory if it doesn't exist
         self.export_dir.mkdir(parents=True, exist_ok=True)
@@ -328,8 +328,8 @@ Examples:
 
     parser.add_argument(
         '--db',
-        default='../data/simulator_three_asset.db',
-        help='Path to simulator database (default: ../data/simulator_three_asset.db)'
+        default='../../data/simulator_three_asset.db',
+        help='Path to simulator database (default: ../../data/simulator_three_asset.db)'
     )
 
     parser.add_argument(
@@ -354,7 +354,7 @@ Examples:
     # Check if database exists
     if not os.path.exists(args.db):
         print(f"✗ Database not found: {args.db}")
-        print("Available databases in ../data/:")
+        print("Available databases in ../../data/:")
         data_dir = Path(args.db).parent
         if data_dir.exists():
             for db_file in data_dir.glob('*.db'):

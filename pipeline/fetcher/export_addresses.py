@@ -22,7 +22,7 @@ def main():
     storage = AddressStorage(config.database_path)
 
     # Determine main project directory and exports folder
-    main_dir = script_dir.parent
+    main_dir = script_dir.resolve().parents[2]  # repo root
     exports_dir = main_dir / "exports"
 
     # Create exports directory if it doesn't exist

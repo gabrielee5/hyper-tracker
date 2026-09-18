@@ -227,8 +227,8 @@ Examples:
 
     parser.add_argument(
         '--db',
-        default='../data/follower_signals.db',
-        help='Path to follower_signals.db (default: ../data/follower_signals.db)'
+        default='../../data/follower_signals.db',
+        help='Path to follower_signals.db (default: ../../data/follower_signals.db)'
     )
 
     parser.add_argument(

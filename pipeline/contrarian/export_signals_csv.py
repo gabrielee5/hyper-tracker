@@ -227,8 +227,8 @@ Examples:
 
     parser.add_argument(
         '--db',
-        default='../data/contrarian_signals.db',
-        help='Path to contrarian_signals.db (default: ../data/contrarian_signals.db)'
+        default='../../data/contrarian_signals.db',
+        help='Path to contrarian_signals.db (default: ../../data/contrarian_signals.db)'
     )
 
     parser.add_argument(
@@ -281,7 +281,7 @@ Examples:
 
     # Determine main project directory and exports folder
     # Go up from script directory to find the main project directory
-    main_dir = script_dir.parent
+    main_dir = script_dir.resolve().parents[2]  # repo root
     exports_dir = main_dir / "exports"
 
     # Create exports directory if it doesn't exist
